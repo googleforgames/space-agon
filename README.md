@@ -39,7 +39,7 @@ gcloud config set project $PROJECT_ID
 gcloud config set compute/zone $ZONE
 
 # Create cluster (using default network)
-# Set --network <vpc> --subnetwork <subnet> if you wanto specify the network
+# Set --network <vpc> --subnetwork <subnet> if you want to select the network
 gcloud container clusters create space-agon \
     --cluster-version=1.22 \
     --tags=game-server \
