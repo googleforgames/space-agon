@@ -1,0 +1,228 @@
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+{{/* This warning is for the generated file, though editing this file directly
+is still rare */}}
+// THIS FILE IS GENERATED, DO NOT EDIT
+// THIS FILE IS GENERATED, DO NOT EDIT
+// THIS FILE IS GENERATED, DO NOT EDIT
+// THIS FILE IS GENERATED, DO NOT EDIT
+// THIS FILE IS GENERATED, DO NOT EDIT
+// THIS FILE IS GENERATED, DO NOT EDIT
+// THIS FILE IS GENERATED, DO NOT EDIT
+// THIS FILE IS GENERATED, DO NOT EDIT
+// THIS FILE IS GENERATED, DO NOT EDIT
+// THIS FILE IS GENERATED, DO NOT EDIT
+// THIS FILE IS GENERATED, DO NOT EDIT
+// If you want to define new components, edit game/generation/generation.go
+// Then run: go generate github.com/googleforgames/space-agon/game/generation
+
+package game
+
+// Lookup has a special implementation which keeps track of how it is moved,
+// just include it manually here.
+type comp_Lookup []*Lookup
+
+func (c *comp_Lookup) Swap(j1, j2 int) {
+  (*c)[j1], (*c)[j2] = (*c)[j2], (*c)[j1]
+  (*c)[j1][1] = j1
+  (*c)[j2][1] = j2
+}
+
+func (c *comp_Lookup) Extend(i int) {
+  j := len(*c)
+  *c = append(*c, &Lookup{i, j})
+}
+
+func (c *comp_Lookup) RemoveLast() {
+  j := len(*c) - 1
+  (*c)[j][0] = -2
+  (*c)[j][1] = -3
+  *c = (*c)[:j]
+}
+
+{{range $type := .CompTypes}}{{if $type.GenerateTypeDeclaration}}
+
+type {{$type.Name}} []{{$type.TrueType}}
+
+func (c *{{$type.Name}}) Swap(j1, j2 int) {
+  (*c)[j1], (*c)[j2] = (*c)[j2], (*c)[j1]
+}
+
+func (c *{{$type.Name}}) Extend(i int) {
+  *c = append(*c, {{$type.TypeLiteral}})
+}
+
+func (c *{{$type.Name}}) RemoveLast() {
+  *c = (*c)[:len(*c)-1]
+}
+
+{{end}}{{end}}
+
+const (
+  {{range $name, $type := .Comps}}
+  {{$name}}Key = CompKey(iota){{end}}
+
+  doNotMoveOrUseLastKeyForNumberOfKeys
+)
+
+type EntityBag struct {
+  count    int
+  comps    []Comp
+  compsKey compsKey
+
+  {{range $name, $type := .Comps}}{{if $type}}
+  {{$name}} *{{$type.Name}} {{end}}{{end}}
+}
+
+func newEntityBag(compsKey *compsKey) *EntityBag {
+  bag := &EntityBag{
+    count:    0,
+    comps:    nil,
+    compsKey: *compsKey,
+  }
+
+{{range $name, $type := .Comps}}
+  {{if $type}}
+    if inRequirement(compsKey, {{$name}}Key) {
+      bag.{{$name}} = &{{$type.Name}}{}
+      bag.comps = append(bag.comps, bag.{{$name}})
+    }  
+  {{end}}
+{{end}}
+
+  return bag
+}
+
+{{range $name, $type := .Comps}}{{if $type}}
+func (iter *Iter) {{$name}}() *{{$type.TrueType}} {
+  comp := iter.e.bags[iter.i].{{$name}}
+  if comp == nil {
+    return nil
+  }
+  return {{if $type.ReturnPointer}}&{{end}}(*comp)[iter.j]
+}
+{{end}}{{end}}
+
+func inRequirement(compsKey *compsKey, compKey CompKey) bool {
+  return 0 < (*compsKey)[compKey/compsKeyUnitSize]&(1<<(compKey%compsKeyUnitSize))
+}
+
+func (e *EntityBag) Add(i int) int {
+  j := e.count
+  e.count++
+  for _, c := range e.comps {
+    c.Extend(i)
+  }
+  return j
+}
+
+func (e *EntityBag) Remove(i int) {
+  e.count--
+  for _, c := range e.comps {
+    c.Swap(e.count, i)
+    c.RemoveLast()
+  }
+}
+
+type Iter struct {
+  e            *Entities
+  i            int
+  j            int
+  requirements compsKey
+}
+
+func (iter *Iter) Require(k CompKey) {
+  iter.requirements[k/compsKeyUnitSize] |= 1 << (k % compsKeyUnitSize)
+}
+
+func (iter *Iter) Next() bool {
+  iter.j++
+  for iter.i == -1 || iter.j >= iter.e.bags[iter.i].count {
+    for {
+      iter.i++
+      if iter.i >= len(iter.e.bags) {
+        return false
+      }
+      if iter.meetsRequirements(iter.e.bags[iter.i]) {
+        break
+      }
+    }
+    iter.j = 0
+  }
+  return true
+}
+
+func (iter *Iter) meetsRequirements(bag *EntityBag) bool {
+  for i := 0; i < len(iter.requirements); i++ {
+    if iter.requirements[i] != (iter.requirements[i] & bag.compsKey[i]) {
+      return false
+    }
+  }
+  return true
+}
+
+func (iter *Iter) New() {
+  var ok bool
+  iter.i, ok = iter.e.bagsByKey[iter.requirements]
+  if !ok {
+    iter.e.bagsByKey[iter.requirements] = len(iter.e.bags)
+    iter.i = len(iter.e.bags)
+    iter.e.bags = append(iter.e.bags, newEntityBag(&iter.requirements))
+  }
+
+  iter.j = iter.e.bags[iter.i].Add(iter.i)
+}
+
+func (iter *Iter) Get(indices *Lookup) {
+  iter.i = (*indices)[0]
+  iter.j = (*indices)[1]
+}
+
+func (iter *Iter) Remove() {
+  iter.e.bags[iter.i].Remove(iter.j)
+  // So that a call to next will arrive at this index, which now contains  a
+  // different entity.
+  iter.j--
+}
+
+type CompKey uint16
+type compsKey [doNotMoveOrUseLastKeyForNumberOfKeys/compsKeyUnitSize + 1]uint8
+
+const compsKeyUnitSize = 8
+
+type Entities struct {
+  bags      []*EntityBag
+  bagsByKey map[compsKey]int
+}
+
+func newEntities() *Entities {
+  return &Entities{
+    bagsByKey: make(map[compsKey]int),
+  }
+}
+
+func (e *Entities) NewIter() *Iter {
+  return &Iter{
+    e: e,
+    i: -1,
+    j: -1,
+  }
+}
+
+type Comp interface {
+  Swap(j1, j2 int)
+  Extend(i int)
+  RemoveLast()
+}

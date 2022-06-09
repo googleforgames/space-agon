@@ -1,0 +1,118 @@
+/*
+white: 
+light: #2d70de
+dark: #0a1a3f
+ */
+
+body {
+  font-family: 'Turret Road', Sans-serif;
+}
+
+body {
+  background-color: #0a1a3f; 
+}
+
+html, body, #container, #overlays {
+  width:  100%;
+  height: 100%;
+  margin: 0;
+  cursor: default;
+  user-select: none;
+}
+
+#overlays {
+  color: white;
+  text-align: center;
+  text-shadow: -1px -1px 0 #0a1a3f, 1px -1px 0 #0a1a3f, -1px 1px 0 #0a1a3f, 1px 1px 0 #0a1a3f;
+/*  text-shadow:
+    -0.02em -0.02em 0 #000,
+    0.02em -0.02em 0 #000,
+    -0.02em 0.02em 0 #000,
+    0.02em 0.02em 0 #000,
+    0em -0.0282842712475em 0 #000,
+    0em 0.0282842712475em 0 #000,
+    -0.0282842712475em 0em 0 #000,
+    0.0282842712475em 0em 0 #000;*/
+}
+
+#overlays {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+}
+
+#overlays > div {
+  width: 100vmin;
+  height: 100vmin;
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  -ms-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+}
+
+#title {
+  font-size: 16vmin;
+  position: absolute;
+  top: 15%;
+  left: 5%;
+  right: 5%;
+  bottom: 80%;
+}
+
+.menu-item:hover {
+  color: #2d70de;
+}
+
+
+.upper-choice {
+  font-size: 7vmin;
+  position: absolute;
+  width: 80%;
+  height: 10%;
+  left: 10%;
+  bottom: 25%;
+}
+
+.middle-choice {
+  font-size: 7vmin;
+  position: absolute;
+  width: 80%;
+  height: 10%;
+  left: 10%;
+  bottom: 15%;
+}
+
+.lower-choice {
+  font-size: 7vmin;
+  position: absolute;
+  width: 80%;
+  height: 10%;
+  left: 10%;
+  bottom: 5%;
+}
+
+input[type=text] {
+  border: 0.1em solid #2d70de;
+  font-family: 'Turret Road', Sans-serif;
+  color: white;
+  background-color: #0a1a3f;
+  padding: 0.1em;
+}
+
+#error-text {
+  font-size: 3vmin;
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  top: 5%;
+  bottom: 5%;
+  border: 0.5em solid #2d70de;
+  background-color: #0a1a3f;
+  color: white;
+  padding: 0.1em;
+  text-align: left;
+  user-select: text;
+  cursor: initial;
+}

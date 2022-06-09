@@ -1,0 +1,136 @@
+ 
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+package spaceagon;
+option go_package = "github.com/googleforgames/space-agon/game/pb";
+
+message ClientInitialize {
+  int64 cid = 1;
+}
+
+
+message Memos {
+  repeated Memo memos = 1;
+}
+
+message Memo {
+  oneof recipient {
+    int64 to = 1;
+    int64 everyone_but = 2;
+    bool everyone = 3;
+  }
+
+  oneof actual {
+    PosTracks pos_tracks = 10;
+    MomentumTracks momentum_tracks = 11;
+    RotTracks rot_tracks = 12;
+    SpinTracks spin_tracks = 13;
+    ShipControlTrack ship_control_track = 14;
+ 
+    // TODO: Remove
+  //  SpawnEvent spawn_event = 15;
+    DestroyEvent destroy_event = 16;
+
+    ShootMissile shoot_missile = 17;
+    SpawnMissile spawn_missile = 18;
+    SpawnExplosion spawn_explosion = 19;
+    SpawnShip spawn_ship = 20;
+    RegisterPlayer register_player = 21;
+  }
+}
+
+message PosTracks {
+  repeated uint64 nid = 1;
+  repeated float x = 2;
+  repeated float y = 3;
+}
+
+message MomentumTracks {
+  repeated uint64 nid = 1;
+  repeated float x = 2;
+  repeated float y = 3;
+}
+
+message RotTracks {
+  repeated uint64 nid = 1;
+  repeated float r = 2;
+}
+
+message SpinTracks {
+  repeated uint64 nid = 1;
+  repeated float s = 2;
+}
+
+message ShipControlTrack {
+  uint64 nid = 1;
+  bool up = 2;
+  bool left = 3;
+  bool right = 4;
+}
+
+//message SpawnEvent {
+//  uint64 nid = 1;
+//
+//  enum SpawnType {
+//    UNKNOWN = 0;
+//    SHIP = 1;
+//    //MISSILE = 2;
+//    //EXPLOSION = 3;
+//  }
+//
+//  SpawnEvent.SpawnType spawn_type = 2;
+//}
+
+message DestroyEvent {
+  uint64 nid = 1;
+}
+
+message ShootMissile {
+  uint64 owner = 1;
+}
+
+// Server is always authority
+message SpawnMissile {
+  uint64 nid = 6;
+  uint64 owner = 1;
+  vec2 pos = 2;
+  vec2 momentum = 3;
+  float rot = 4;
+  float spin = 5;
+}
+
+message SpawnExplosion {
+  vec2 pos = 1;
+  vec2 momentum = 2;
+}
+
+message SpawnShip {
+  uint64 nid = 1;
+  int64 authority = 2;
+  vec2 pos = 3;
+  vec2 momentum = 4;
+  float rot = 5;
+  float spin = 6;
+}
+
+message RegisterPlayer {
+  int64 cid = 1;
+}
+
+message vec2 {
+  float x = 1;
+  float y = 2;
+}

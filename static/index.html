@@ -1,0 +1,68 @@
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <script src="/static/wasm_exec.js"></script>
+    <script>
+      var whenLoaded = function(f) {
+        window.onload = f;
+      }
+      window.onload = function() {
+        whenLoaded = function(f) {
+          f();
+        }
+      }
+
+      if (!WebAssembly.instantiateStreaming) { // polyfill
+        WebAssembly.instantiateStreaming = async (resp, importObject) => {
+          const source = await (await resp).arrayBuffer();
+          return await WebAssembly.instantiate(source, importObject);
+        };
+      }
+
+      const go = new Go();
+      WebAssembly.instantiateStreaming(fetch("/static/client.wasm"), go.importObject).then((result) => {
+        go.run(result.instance);
+      });
+    </script>
+    <link href="https://fonts.googleapis.com/css?family=Turret+Road:800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="/static/stylesheet.css">
+  </head>
+  <body>
+    <image id="spritesheet" hidden src="/static/spritesheet.svg"></image>
+    <div id="container">
+    </div>
+    <div id="overlays">
+      <div id="overlay-loading">
+        <div class="lower-choice">Loading...</div>
+      </div>
+      <div id="overlay-main-menu" hidden>
+        <div id="title">Space Agon</div>
+        <div id="find-game" class="menu-item middle-choice" onclick="matchmake();">Find Game</div>
+        <div id="connect-to-server" class="menu-item lower-choice" onclick="setOverlay('overlay-choose-ip');">Connect To Server</div>
+      </div>
+      <div id="overlay-choose-ip" hidden>
+        <input type="text" class="upper-choice" id="connection-address">
+        <div class="middle-choice menu-item" onclick="connect(document.getElementById('connection-address').value)">Connect</div>
+        <div class="lower-choice menu-item" onclick="setOverlay('overlay-main-menu');">Cancel</div>
+      </div>
+      <div id="overlay-matchmaking" hidden>
+        <div class="lower-choice">Finding match...</div>
+      </div>
+      <div id="overlay-connecting" hidden>
+        <div class="lower-choice">Connecting...</div>
+      </div>
+      <div id="overlay-error" hidden>
+        <div id="error-text">There was an erorr, and it's text should show up instead of this.</div>
+      </div>
+      <div id="overlay-tutorial-turn" hidden>
+        <div class="lower-choice">← and → to turn</div>
+      </div>
+      <div id="overlay-tutorial-move" hidden>
+        <div class="lower-choice">↑ to move</div>
+      </div>
+      <div id="overlay-tutorial-shoot" hidden>
+        <div class="lower-choice">space to shoot</div>
+      </div>
+    </div>
+  </body>
+</html>
