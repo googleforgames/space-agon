@@ -39,20 +39,8 @@ gcloud config set project $PROJECT_ID
 gcloud config set compute/zone $ZONE
 
 # Create cluster (using default network)
-# Set --network <vpc> --subnetwork <subnet> if you want to select the network
-gcloud container clusters create space-agon \
-    --cluster-version=1.22 \
-    --tags=game-server \
-    --scopes=gke-default \
-    --num-nodes=4 \
-    --no-enable-autoupgrade \
-    --machine-type=n1-standard-4
-
-# Open Firewall for Agones
-gcloud compute firewall-rules create gke-game-server-firewall \
-    --allow tcp:7000-8000 \
-    --target-tags game-server \
-    --description "Firewall to allow game server tcp traffic"
+# Set NETWORK=<your network>, if you want to select the network
+make gcloud-test-cluster
 
 # Create Artifact Registry Repository
 gcloud artifacts repositories create $REPOSITORY \
@@ -70,15 +58,10 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 gcloud auth configure-docker $LOCATION-docker.pkg.dev
 
 # Install Agones
-kubectl create namespace agones-system
-kubectl apply -f https://raw.githubusercontent.com/googleforgames/agones/release-1.23.0/install/yaml/install.yaml
+make agones-install
 
 # Install Open Match
-kubectl create namespace open-match
-kubectl apply -f https://open-match.dev/install/v1.3.0/yaml/01-open-match-core.yaml \
-    -f https://open-match.dev/install/v1.3.0/yaml/06-open-match-override-configmap.yaml \
-    -f https://open-match.dev/install/v1.3.0/yaml/07-open-match-default-evaluator.yaml \
-    --namespace open-match
+make openmatch-install
 ```
 
 ## Commands to deploy
@@ -86,20 +69,11 @@ kubectl apply -f https://open-match.dev/install/v1.3.0/yaml/01-open-match-core.y
 Make sure you installed docker to build and push images
 
 ```sh
-TAG=$(date +INDEV-%Y%m%d-%H%M%S) && \
-REGISTRY=$LOCATION-docker.pkg.dev/$(gcloud config list --format 'value(core.project)')/$REPOSITORY && \
-docker build . -f Frontend.Dockerfile -t $REGISTRY/space-agon-frontend:$TAG && \
-docker build . -f Dedicated.Dockerfile -t $REGISTRY/space-agon-dedicated:$TAG && \
-docker build . -f Director.Dockerfile -t $REGISTRY/space-agon-director:$TAG && \
-docker build . -f Mmf.Dockerfile -t $REGISTRY/space-agon-mmf:$TAG && \
-docker push $REGISTRY/space-agon-frontend:$TAG && \
-docker push $REGISTRY/space-agon-dedicated:$TAG && \
-docker push $REGISTRY/space-agon-director:$TAG && \
-docker push $REGISTRY/space-agon-mmf:$TAG && \
-ESC_REGISTRY=$(echo $REGISTRY | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g') && \
-ESC_TAG=$(echo $TAG | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g') && \
-sed -E 's/image: (.*)\/([^\/]*):(.*)/image: '$ESC_REGISTRY'\/\2:'$ESC_TAG'/' deploy_template.yaml > deploy.yaml && \
-kubectl apply -f deploy.yaml
+# build space-agon images
+make build
+
+# apply space-agon images
+make install
 ```
 
 ## View and Play
@@ -127,26 +101,22 @@ Then use the connect to server option with the value `<ip>:<port>`.
 
 ## Clean Up
 
+### Delete the deployment
+
+```sh
+make uninstall
+```
+
 ### Uninstall Agones
 
 ```sh
-kubectl delete fleets --all --all-namespaces
-kubectl delete gameservers --all --all-namespaces
-kubectl delete -f https://raw.githubusercontent.com/googleforgames/agones/release-1.23.0/install/yaml/install.yaml
-kubectl delete namespace agones-system
+make agones-uninstall
 ```
 
 ### Uninstall Open-Match
 
 ```sh
-kubectl delete psp,clusterrole,clusterrolebinding --selector=release=open-match
-kubectl delete namespace open-match
-```
-
-### Delete the deployment
-
-```sh
-kubectl delete -f deploy.yaml 
+make openmatch-uninstall
 ```
 
 ### Delete your Google Cloud Project
