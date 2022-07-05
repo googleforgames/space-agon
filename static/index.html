@@ -1,4 +1,5 @@
 <!--
+ Copyright 2019 Laremere
  Copyright 2022 Google LLC
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -10,11 +11,12 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  -->
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8"/>
     <script src="/static/wasm_exec.js"></script>
     <script>
+    // Web Assembly loading.
       var whenLoaded = function(f) {
         window.onload = f;
       }
@@ -36,7 +38,7 @@
         go.run(result.instance);
       });
     </script>
-    <link href="https://fonts.googleapis.com/css?family=Turret+Road:800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Turret+Road:800&display=swap" >
     <link rel="stylesheet" type="text/css" href="/static/stylesheet.css">
   </head>
   <body>
@@ -64,7 +66,7 @@
         <div class="lower-choice">Connecting...</div>
       </div>
       <div id="overlay-error" hidden>
-        <div id="error-text">There was an erorr, and it's text should show up instead of this.</div>
+        <div id="error-text">There was an erorr, check logs for Agones or Open Match.</div>
       </div>
       <div id="overlay-tutorial-turn" hidden>
         <div class="lower-choice">← and → to turn</div>
