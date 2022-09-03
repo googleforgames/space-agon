@@ -1,2 +1,4 @@
-deploy.yaml
-README.md
+*.yaml
+*.md
+LICENSE
+Makefile
