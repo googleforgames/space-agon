@@ -10,7 +10,7 @@ Space Agon is a integrated demo of [Agones](https://agones.dev/) and
 **Be aware of billing charges for running the cluster.**
 
 Space Agon is intended to run on [Google Kubernetes Engine (GKE)](https://cloud.google.com/kubernetes-engine) and has been tested with the configured cluster size.   
-Leaving the cluster running may incur your cost. You need to take responsibility for it.  (See pricings of [GKE](https://cloud.google.com/kubernetes-engine/pricing), [Cloud Build](https://cloud.google.com/build/pricing) and [Artifact Registry](https://cloud.google.com/artifact-registry/pricing).) 
+Leaving the cluster running may incur your cost. You need to be responsible for the cost.  (See pricings of [GKE](https://cloud.google.com/kubernetes-engine/pricing), [Cloud Build](https://cloud.google.com/build/pricing) and [Artifact Registry](https://cloud.google.com/artifact-registry/pricing).) 
 
 ## Prerequisites
 
