@@ -9,14 +9,14 @@ Space Agon is a integrated demo of [Agones](https://agones.dev/) and
 
 **Be aware of billing charges for running the cluster.**
 
-Space Agon is intended to run on [Google Kubernetes Engine (GKE)](https://cloud.google.com/kubernetes-engine) and has been tested with the configured cluster size .   
+Space Agon is intended to run on [Google Kubernetes Engine (GKE)](https://cloud.google.com/kubernetes-engine) and has been tested with the configured cluster size.   
 Leaving the cluster running may incur your cost. You need to take responsibility for it.  (See pricings of [GKE](https://cloud.google.com/kubernetes-engine/pricing), [Cloud Build](https://cloud.google.com/build/pricing) and [Artifact Registry](https://cloud.google.com/artifact-registry/pricing).) 
 
 ## Prerequisites
 
-Create your [Google Cloud Project](https://cloud.google.com/) to test and deploy.
+Create your [Google Cloud Project](https://cloud.google.com/).
 
-You need to install tools in your dev environment:
+Install tools in your dev environment:
 
 - [gcloud](https://cloud.google.com/sdk/gcloud)
 - [docker](https://www.docker.com/)
@@ -69,7 +69,7 @@ make agones-install
 make openmatch-install
 ```
 
-## Commands to deploy
+## Deploy applications
 
 Make sure you installed docker to build and push images
 
@@ -95,7 +95,7 @@ match" to start searching for a match.
 Repeat in a second web browser window to create a second player, the players
 will be connected and can play each other.
 
-## Testing Space-Agon
+## Access GameServer
 
 View Running Game Servers:
 
@@ -130,21 +130,23 @@ make openmatch-uninstall
 gcloud projects delete $PROJECT_ID
 ```
 
-## Development
+## Develop Applications
 
-In case testing your original match making logics, [`skaffold`](https://skaffold.dev/) can help you to debug in the space-agon cluster. 
+In case testing your original match making logics, [`skaffold`](https://skaffold.dev/) can help you debug your applications. 
 
 ### Setup
 
 1. Create a space-agon k8s cluster.
-1. [Install `skaffold`](https://skaffold.dev/docs/install/) if you haven't installed. 
-1. Run `make skaffold-setup` on the project root to create a `skaffold.yaml`
+1. [Install `skaffold`](https://skaffold.dev/docs/install/) if you haven't. 
+1. Run `make skaffold-setup` on the project root to make a `skaffold.yaml`
 
 Now you're ready to run `skaffold` commands.
 
 ### Debug
 
 Once you create a `skaffold.yaml`, you can run `skaffold` commands.
+
+You can check your own logic and debug.
 
 ```bash
 # Build space-agon images with Cloud Build
@@ -154,7 +156,7 @@ skaffold build
 skaffold dev
 ```
 
-Changing files triggers Build and Deploy on the fly. For more commands and details, visit [`skaffold`](https://skaffold.dev/). 
+Modifying applications during `skaffold dev` triggers Build and Deploy automatically. For more commands and details, visit [`skaffold`](https://skaffold.dev/). 
 
 ## LICENSE
 

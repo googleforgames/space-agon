@@ -21,11 +21,11 @@
 PROJECT_ID=$1
 REGISTRY=$2
 
-gcloud config set project $PROJECT_ID
+gcloud config set project ${PROJECT_ID}
 gcloud services enable cloudbuild.googleapis.com
 
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-    --member=serviceAccount:$(gcloud projects describe $PROJECT_ID \
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member=serviceAccount:$(gcloud projects describe ${PROJECT_ID} \
     --format="value(projectNumber)")@cloudbuild.gserviceaccount.com \
     --role="roles/storage.objectViewer"
 
