@@ -20,8 +20,8 @@ WORKDIR /go/src/github.com/googleforgames/space-agon
 COPY go.sum go.mod ./
 RUN go mod download
 
-COPY . .
 RUN mkdir /app
+COPY mmf ./mmf
 RUN CGO_ENABLED=0 go build -installsuffix cgo -o /app/mmf github.com/googleforgames/space-agon/mmf
 
 FROM gcr.io/distroless/static:nonroot

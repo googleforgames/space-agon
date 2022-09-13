@@ -59,6 +59,9 @@ help:
 	@echo "Uninstall Space Agon"
 	@echo "    make uninstall"
 	@echo ""
+	@echo "Setup a Skaffold file for debugging !!RUN AFTER CREATING YOUR CLUSTER!!"
+	@echo "    make skaffold-setup"
+	@echo ""
 
 # build space-agon docker images
 .PHONY: build
@@ -91,9 +94,9 @@ agones-uninstall:
 .PHONY: openmatch-install
 openmatch-install:
 	kubectl create namespace open-match
-	kubectl apply -f https://open-match.dev/install/v1.3.0/yaml/01-open-match-core.yaml \
-		-f https://open-match.dev/install/v1.3.0/yaml/06-open-match-override-configmap.yaml \
-		-f https://open-match.dev/install/v1.3.0/yaml/07-open-match-default-evaluator.yaml \
+	kubectl apply -f https://open-match.dev/install/v1.4.0/yaml/01-open-match-core.yaml \
+		-f https://open-match.dev/install/v1.4.0/yaml/06-open-match-override-configmap.yaml \
+		-f https://open-match.dev/install/v1.4.0/yaml/07-open-match-default-evaluator.yaml \
 		--namespace open-match
 
 # uninstall open-match
@@ -101,6 +104,10 @@ openmatch-install:
 openmatch-uninstall:
 	kubectl delete psp,clusterrole,clusterrolebinding --selector=release=open-match
 	kubectl delete namespace open-match
+
+.PHONY: skaffold-setup
+skaffold-setup:
+	./scripts/setup-skaffold.sh ${PROJECT} ${REGISTRY}
 
 # install space-agon itself
 .PHONY: install

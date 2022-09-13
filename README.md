@@ -2,33 +2,38 @@ The original work is [Laremere/space-agon](https://github.com/Laremere/space-ago
 
 # Space Agon
 
-Space Agon is a demo of [Agones](https://agones.dev/) and
-[Open Match](https://open-match.dev/). You can try integrations of Gaming OSS.
+Space Agon is a integrated demo of [Agones](https://agones.dev/) and
+[Open Match](https://open-match.dev/).
 
-## Before Installing
+## Before Trying.
 
-**Warning**: Be aware of billing charges for running the cluster.  
+**Be aware of billing charges for running the cluster.**
 
-Space Agon has been tested on this cluster size (nodes and machine types), but a small cluster may be sufficient for your use.    
-Don't leave the cluster running when you're not using it if you're concerned about cost. See [pricing](https://cloud.google.com/kubernetes-engine/pricing) for more.
+Space Agon is intended to run on [Google Kubernetes Engine (GKE)](https://cloud.google.com/kubernetes-engine) and has been tested with the configured cluster size.   
+Leaving the cluster running may incur your cost. You need to be responsible for the cost.  (See pricings of [GKE](https://cloud.google.com/kubernetes-engine/pricing), [Cloud Build](https://cloud.google.com/build/pricing) and [Artifact Registry](https://cloud.google.com/artifact-registry/pricing).) 
 
 ## Prerequisites
 
-You need to install tools:
+Create your [Google Cloud Project](https://cloud.google.com/).
 
-- [docker](https://www.docker.com/)
+Install tools in your dev environment:
+
 - [gcloud](https://cloud.google.com/sdk/gcloud)
+- [docker](https://www.docker.com/)
 - [kubectl](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_kubectl)
+- [skaffold](https://skaffold.dev/) (Optional)
 
-[Google Cloud Shell](https://cloud.google.com/shell) has all tools you need.
+_[Google Cloud Shell](https://cloud.google.com/shell) has all tools you need._
 
 ## Create the Resources and Install Gaming OSS
 
-```sh
+```bash
+# Set Your Project ID before you run
+PROJECT_ID=<your project ID>
+
 LOCATION=us-central1
 ZONE=$LOCATION-a
-# Set Your Project ID before you run
-PROJECT_ID=<your project id>
+
 REPOSITORY=space-agon
 
 gcloud services enable artifactregistry.googleapis.com \
@@ -64,15 +69,15 @@ make agones-install
 make openmatch-install
 ```
 
-## Commands to deploy
+## Deploy applications
 
 Make sure you installed docker to build and push images
 
-```sh
-# build space-agon images
+```bash
+# Build space-agon images
 make build
 
-# apply space-agon images
+# Apply space-agon images
 make install
 ```
 
@@ -80,7 +85,7 @@ make install
 
 Get External IP from:
 
-```sh
+```bash
 kubectl get service frontend
 ```
 
@@ -90,7 +95,7 @@ match" to start searching for a match.
 Repeat in a second web browser window to create a second player, the players
 will be connected and can play each other.
 
-## Additional Things to do
+## Access GameServer
 
 View Running Game Servers:
 
@@ -124,6 +129,34 @@ make openmatch-uninstall
 ```sh
 gcloud projects delete $PROJECT_ID
 ```
+
+## Develop Applications
+
+In case testing your original match making logics, [`skaffold`](https://skaffold.dev/) can help you debug your applications. 
+
+### Setup
+
+1. Create a space-agon k8s cluster.
+1. [Install `skaffold`](https://skaffold.dev/docs/install/) if you haven't. 
+1. Run `make skaffold-setup` on the project root to make a `skaffold.yaml`
+
+Now you're ready to run `skaffold` commands.
+
+### Debug
+
+Once you create a `skaffold.yaml`, you can run `skaffold` commands.
+
+You can check your own logic and debug.
+
+```bash
+# Build space-agon images with Cloud Build
+skaffold build 
+
+# Run Applicaitons in the space-agon cluster for debugging.
+skaffold dev
+```
+
+Modifying applications during `skaffold dev` triggers Build and Deploy automatically. For more commands and details, visit [`skaffold`](https://skaffold.dev/). 
 
 ## LICENSE
 
