@@ -34,10 +34,24 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
+type Runner struct {
+	BackendServiceClient       pb.BackendServiceClient
+	CloserBackendServiceClient func() error
+	AgonesClientset            versioned.Interface
+}
+
 func main() {
 	log.Println("Starting Director")
+
+	var r Runner
+	omBackendClient, omCloser := createOMBackendClient()
+
+	r.AgonesClientset = createAgonesClient()
+	r.BackendServiceClient = omBackendClient
+	r.CloserBackendServiceClient = omCloser
+
 	for range time.Tick(time.Second) {
-		if err := run(); err != nil {
+		if err := r.run(); err != nil {
 			log.Println("Error running director:", err.Error())
 		}
 	}
@@ -114,8 +128,9 @@ func createOMAssignTicketRequest(match *pb.Match, gsa *allocationv1.GameServerAl
 	}
 }
 
-func run() error {
-	bc, closer := createOMBackendClient()
+func (r Runner) run() error {
+	bc := r.BackendServiceClient
+	closer := r.CloserBackendServiceClient
 	defer closer()
 
 	agonesClient := createAgonesClient()
