@@ -28,11 +28,14 @@ import (
 	agonesv1 "agones.dev/agones/pkg/apis/agones/v1"
 	allocationv1 "agones.dev/agones/pkg/apis/allocation/v1"
 	"agones.dev/agones/pkg/client/clientset/versioned"
+	"google.golang.org/grpc/credentials/insecure"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
+
+var omApiHost = "open-match-backend.open-match.svc.cluster.local:50505"
 
 type Runner struct {
 	BackendServiceClient       pb.BackendServiceClient
@@ -58,7 +61,7 @@ func main() {
 }
 
 func createOMBackendClient() (pb.BackendServiceClient, func() error) {
-	conn, err := grpc.Dial("open-match-backend.open-match.svc.cluster.local:50505", grpc.WithInsecure())
+	conn, err := grpc.Dial(omApiHost, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(err)
 	}
