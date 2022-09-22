@@ -37,7 +37,7 @@ import (
 
 var omApiHost = "open-match-backend.open-match.svc.cluster.local:50505"
 
-type Runner struct {
+type Client struct {
 	BackendServiceClient       pb.BackendServiceClient
 	CloserBackendServiceClient func() error
 	AgonesClientset            versioned.Interface
@@ -46,14 +46,15 @@ type Runner struct {
 func main() {
 	log.Println("Starting Director")
 
-	var r Runner
-	omBackendClient, omCloser := createOMBackendClient()
-
-	r.AgonesClientset = createAgonesClient()
-	r.BackendServiceClient = omBackendClient
-	r.CloserBackendServiceClient = omCloser
-
 	for range time.Tick(time.Second) {
+
+		omBackendClient, omCloser := createOMBackendClient()
+
+		var r Client
+		r.AgonesClientset = createAgonesClient()
+		r.BackendServiceClient = omBackendClient
+		r.CloserBackendServiceClient = omCloser
+
 		if err := r.run(); err != nil {
 			log.Println("Error running director:", err.Error())
 		}
@@ -131,7 +132,7 @@ func createOMAssignTicketRequest(match *pb.Match, gsa *allocationv1.GameServerAl
 	}
 }
 
-func (r Runner) run() error {
+func (r Client) run() error {
 	bc := r.BackendServiceClient
 	closer := r.CloserBackendServiceClient
 	defer closer()
