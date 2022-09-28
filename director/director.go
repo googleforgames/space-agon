@@ -141,7 +141,7 @@ func (r Client) run() error {
 	closer := r.CloserBackendServiceClient
 	defer closer()
 
-	agonesClient := createAgonesClient()
+	agonesClient := r.AgonesClientset
 
 	stream, err := bc.FetchMatches(context.Background(), createOMFetchMatchesRequest())
 	if err != nil {
