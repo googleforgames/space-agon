@@ -62,7 +62,7 @@ help:
 	@echo "Setup a Skaffold file for debugging !!RUN AFTER CREATING YOUR CLUSTER!!"
 	@echo "    make skaffold-setup"
 	@echo ""
-	@echo "Run integration test. "
+	@echo "Run integration test"
 	@echo "    make integration-test"
 	@echo ""
 

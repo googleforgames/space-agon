@@ -165,7 +165,7 @@ When you would like to test the application, follow the steps below.
 1. [Install `skaffold`](https://skaffold.dev/docs/install/) if you haven't. 
 1. [Create a space-agon k8s cluster.](#create-the-resources-and-install-gaming-oss)
 1. Run `make skaffold-setup` on the project root to make a `skaffold.yaml`
-1. Run below commands for E2E test. 
+1. Run below commands for integration test. 
 
 ```bash
 # Run you space-agon applications
