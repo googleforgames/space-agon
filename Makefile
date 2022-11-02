@@ -62,6 +62,9 @@ help:
 	@echo "Setup a Skaffold file for debugging !!RUN AFTER CREATING YOUR CLUSTER!!"
 	@echo "    make skaffold-setup"
 	@echo ""
+	@echo "Run integration test. "
+	@echo "    make integration-test"
+	@echo ""
 
 # build space-agon docker images
 .PHONY: build
@@ -118,3 +121,9 @@ install:
 .PHONY: uninstall
 uninstall:
 	kubectl delete -f deploy.yaml
+
+# integration test
+.PHONY: integration-test
+integration-test:
+	go test -count=1 -v -timeout 60s test/integration_test.go
+
