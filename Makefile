@@ -123,7 +123,7 @@ uninstall:
 	kubectl delete -f deploy.yaml
 
 # TODO: ADD E2e test script
-.PHONY: e2e-test
-e2e-test:
-	go test -count=1 -v -timeout 60s test/e2e_test.go
+.PHONY: integration-test
+integration-test:
+	go test -count=1 -v -timeout 60s test/integration_test.go
 

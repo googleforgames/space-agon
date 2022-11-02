@@ -76,11 +76,11 @@ func TestConnectGameServer(t *testing.T) {
 	cid2 := connectGameServer(url, origin, ctx)
 
 	if cid1 != 1 {
-		t.Errorf("First ClientID should be 1")
+		t.Errorf("First ClientID should be 1 but %d", cid1)
 	}
 
 	if cid2 != 2 {
-		t.Errorf("First ClientID should be 2")
+		t.Errorf("Second ClientID should be 2 but %d", cid2)
 	}
 }
 
@@ -121,11 +121,10 @@ func getAssignment(url string, origin string) <-chan ompb.Assignment {
 	go func() {
 		defer ws.Close()
 		defer close(ch)
-		for {
+		for range time.Tick(time.Second * 1) {
 			err := stream.Recv(as)
 			if err != nil {
 				fmt.Printf("Failed to receive an assignment with error: %s. Wait for 1 second.\n", err.Error())
-				time.Sleep(time.Second * 1)
 				continue
 			}
 			fmt.Printf("Conntection: %v.\n", as.Connection)
@@ -149,22 +148,20 @@ func confirmLBPIP() {
 		panic(err)
 	}
 
-	clientset, err := kubernetes.NewForConfig(config)
+	cli, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		panic(err)
 	}
 
-	svcClient := clientset.CoreV1().Services(NAMESPACE)
-	for {
-		result, err := svcClient.Get(ctx, SVC, metav1.GetOptions{})
+	svccli := cli.CoreV1().Services(NAMESPACE)
+	for range time.Tick(time.Second * 1) {
+		result, err := svccli.Get(ctx, SVC, metav1.GetOptions{})
 		if err != nil {
 			fmt.Printf("Unable to get public IP from svc: %s, error: %s\n", SVC, err.Error())
-			time.Sleep(time.Second * 1)
 			continue
 		}
 		if len(result.Status.LoadBalancer.Ingress) == 0 {
 			fmt.Printf("Waiting for assignment of a PIP\n")
-			time.Sleep(time.Second * 1)
 			continue
 		} else {
 			pip = result.Status.LoadBalancer.Ingress[0].IP

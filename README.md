@@ -160,7 +160,7 @@ Modifying applications during `skaffold dev` triggers Build and Deploy automatic
 
 ### Test the Cluster
 
-When you would like to test the application ,follow the steps below.
+When you would like to test the application, follow the steps below.
 
 1. [Install `skaffold`](https://skaffold.dev/docs/install/) if you haven't. 
 1. [Create a space-agon k8s cluster.](#create-the-resources-and-install-gaming-oss)
@@ -173,7 +173,7 @@ skaffold dev
 
 # Open another terminal and
 # Run Test command
-make e2e-test
+make integration-test
 ```
 
 ## LICENSE
