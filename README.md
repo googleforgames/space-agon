@@ -136,7 +136,7 @@ In case testing your original match making logics, [`skaffold`](https://skaffold
 
 ### Setup
 
-1. Create a space-agon k8s cluster.
+1. [Create a space-agon k8s cluster.](#create-the-resources-and-install-gaming-oss)
 1. [Install `skaffold`](https://skaffold.dev/docs/install/) if you haven't. 
 1. Run `make skaffold-setup` on the project root to make a `skaffold.yaml`
 
@@ -157,6 +157,24 @@ skaffold dev
 ```
 
 Modifying applications during `skaffold dev` triggers Build and Deploy automatically. For more commands and details, visit [`skaffold`](https://skaffold.dev/). 
+
+### Test the Cluster
+
+When you would like to test the application, follow the steps below.
+
+1. [Install `skaffold`](https://skaffold.dev/docs/install/) if you haven't. 
+1. [Create a space-agon k8s cluster.](#create-the-resources-and-install-gaming-oss)
+1. Run `make skaffold-setup` on the project root to make a `skaffold.yaml`
+1. Run below commands for integration test. 
+
+```bash
+# Run you space-agon applications
+skaffold dev
+
+# Open another terminal and
+# Run Test command
+make integration-test
+```
 
 ## LICENSE
 
