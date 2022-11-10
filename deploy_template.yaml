@@ -1,16 +1,16 @@
-# Copyright 2017 Google LLC All Rights Reserved.
+#  Copyright 2022 Google LLC
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#      https://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
 
 ###############################################
 # Client Frontend
@@ -24,21 +24,20 @@ spec:
   selector:
     matchLabels:
       run: frontend
-  replicas: 2
+  replicas: ${REPLICAS_FRONTEND}
   template:
     metadata:
       labels:
         run: frontend
     spec:
       containers:
-      - name: frontend
-        image: REGISTRY/space-agon-frontend:TAG
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 8080
+        - name: frontend
+          image: ${REGISTRY}/space-agon-frontend:${TAG}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
 
 ---
-
 apiVersion: v1
 kind: Service
 metadata:
@@ -47,15 +46,14 @@ metadata:
     run: frontend
 spec:
   ports:
-  - port: 80
-    targetPort: 8080
-    protocol: TCP
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
   selector:
     run: frontend
   type: LoadBalancer
 
 ---
-
 ###############################################
 # Dedicated Servers
 ###############################################
@@ -65,30 +63,29 @@ kind: Fleet
 metadata:
   name: dedicated
 spec:
-  replicas: 2
+  replicas: ${REPLICAS_DEDICATED}
   template:
     spec:
       ports:
-      - name: default
-        portPolicy: Dynamic
-        containerPort: 2156
-        protocol: TCP
+        - name: default
+          portPolicy: Dynamic
+          containerPort: 2156
+          protocol: TCP
       template:
         spec:
           containers:
-          - name: dedicated
-            image: REGISTRY/space-agon-dedicated:TAG
-            imagePullPolicy: Always
-            resources:
-              requests:
-                memory: "200Mi"
-                cpu: "500m"
-              limits:
-                memory: "200Mi"
-                cpu: "500m"
+            - name: dedicated
+              image: ${REGISTRY}/space-agon-dedicated:${TAG}
+              imagePullPolicy: IfNotPresent
+              resources:
+                requests:
+                  memory: ${REQUEST_MEMORY}
+                  cpu: ${REQUEST_CPU}
+                limits:
+                  memory: ${LIMITS_MEMORY}
+                  cpu: ${LIMITS_CPU}
 
 ---
-
 apiVersion: "autoscaling.agones.dev/v1"
 kind: FleetAutoscaler
 metadata:
@@ -98,12 +95,11 @@ spec:
   policy:
     type: Buffer
     buffer:
-      bufferSize: 2
-      minReplicas: 0
-      maxReplicas: 50
+      bufferSize: ${BUFFER_SIZE}
+      minReplicas: ${MIN_REPLICAS}
+      maxReplicas: ${MAX_REPLICAS}
 
 ---
-
 ###############################################
 # Director
 ###############################################
@@ -124,12 +120,11 @@ spec:
     spec:
       serviceAccount: fleet-allocator
       containers:
-      - name: director
-        image: REGISTRY/space-agon-director:TAG
-        imagePullPolicy: Always
+        - name: director
+          image: ${REGISTRY}/space-agon-director:${TAG}
+          imagePullPolicy: IfNotPresent
 
 ---
-
 # Create a Role in the default namespace that grants access to the agones api
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -138,15 +133,15 @@ metadata:
   labels:
     app: fleet-allocator
 rules:
-- apiGroups: [""]
-  resources: ["events"]
-  verbs: ["create"]
-- apiGroups: ["allocation.agones.dev"]
-  resources: ["gameserverallocations"]
-  verbs: ["create"]
-- apiGroups: ["agones.dev"]
-  resources: ["fleets"]
-  verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create"]
+  - apiGroups: ["allocation.agones.dev"]
+    resources: ["gameserverallocations"]
+    verbs: ["create"]
+  - apiGroups: ["agones.dev"]
+    resources: ["fleets"]
+    verbs: ["get"]
 
 ---
 # Create a ServiceAccount that will be bound to the above role
@@ -166,15 +161,14 @@ metadata:
   labels:
     app: fleet-allocator
 subjects:
-- kind: ServiceAccount
-  name: fleet-allocator
+  - kind: ServiceAccount
+    name: fleet-allocator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: fleet-allocator
 
 ---
-
 ###############################################
 # Match Making Function
 ###############################################
@@ -187,21 +181,20 @@ spec:
   selector:
     matchLabels:
       run: mmf
-  replicas: 2
+  replicas: ${REPLICAS_MMF}
   template:
     metadata:
       labels:
         run: mmf
     spec:
       containers:
-      - name: mmf
-        image: REGISTRY/space-agon-mmf:TAG
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 50502
+        - name: mmf
+          image: ${REGISTRY}/space-agon-mmf:${TAG}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 50502
 
 ---
-
 apiVersion: v1
 kind: Service
 metadata:
@@ -210,7 +203,7 @@ metadata:
     run: mmf
 spec:
   ports:
-  - port: 50502
-    protocol: TCP
+    - port: 50502
+      protocol: TCP
   selector:
     run: mmf
