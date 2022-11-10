@@ -35,9 +35,13 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
-var omApiHost = "open-match-backend.open-match.svc.cluster.local:50505"
+const (
+	OM_API_HOST  = "open-match-backend.open-match.svc.cluster.local:50505"
+	MMF_API_HOST = "mmf.default.svc.cluster.local"
+	MMF_API_PORT = 50502
+)
 
-type Runner struct {
+type Client struct {
 	BackendServiceClient       pb.BackendServiceClient
 	CloserBackendServiceClient func() error
 	AgonesClientset            versioned.Interface
@@ -46,14 +50,15 @@ type Runner struct {
 func main() {
 	log.Println("Starting Director")
 
-	var r Runner
-	omBackendClient, omCloser := createOMBackendClient()
-
-	r.AgonesClientset = createAgonesClient()
-	r.BackendServiceClient = omBackendClient
-	r.CloserBackendServiceClient = omCloser
-
 	for range time.Tick(time.Second) {
+
+		omBackendClient, omCloser := createOMBackendClient()
+
+		var r Client
+		r.AgonesClientset = createAgonesClient()
+		r.BackendServiceClient = omBackendClient
+		r.CloserBackendServiceClient = omCloser
+
 		if err := r.run(); err != nil {
 			log.Println("Error running director:", err.Error())
 		}
@@ -61,7 +66,7 @@ func main() {
 }
 
 func createOMBackendClient() (pb.BackendServiceClient, func() error) {
-	conn, err := grpc.Dial(omApiHost, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(OM_API_HOST, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(err)
 	}
@@ -85,8 +90,8 @@ func createOMFetchMatchesRequest() *pb.FetchMatchesRequest {
 	return &pb.FetchMatchesRequest{
 		// om-function:50502 -> the internal hostname & port number of the MMF service in our Kubernetes cluster
 		Config: &pb.FunctionConfig{
-			Host: "mmf.default.svc.cluster.local",
-			Port: 50502,
+			Host: MMF_API_HOST,
+			Port: MMF_API_PORT,
 			Type: pb.FunctionConfig_GRPC,
 		},
 		Profile: &pb.MatchProfile{
@@ -131,12 +136,12 @@ func createOMAssignTicketRequest(match *pb.Match, gsa *allocationv1.GameServerAl
 	}
 }
 
-func (r Runner) run() error {
+func (r Client) run() error {
 	bc := r.BackendServiceClient
 	closer := r.CloserBackendServiceClient
 	defer closer()
 
-	agonesClient := createAgonesClient()
+	agonesClient := r.AgonesClientset
 
 	stream, err := bc.FetchMatches(context.Background(), createOMFetchMatchesRequest())
 	if err != nil {
