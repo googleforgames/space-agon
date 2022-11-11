@@ -14,8 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-TAG=$(date +INDEV-%Y%m%d-%H%M%S)
-REGISTRY=$1
+TAG=$(git rev-parse --short HEAD)
+
+if [ $1 = "test" ] ;then
+    ENV="test"
+    REGISTRY=local
+else
+    ENV="develop"
+    REGISTRY=$1
+fi
+
+# Use docker engine in minikube
+if [ ${ENV} = "test" ] ;then
+    eval $(minikube -p minikube docker-env)
+fi
 
 # Build images
 docker build -f ./Frontend.Dockerfile -t ${REGISTRY}/space-agon-frontend:${TAG} .
@@ -24,12 +36,20 @@ docker build -f ./Director.Dockerfile -t ${REGISTRY}/space-agon-director:${TAG} 
 docker build -f ./Mmf.Dockerfile -t ${REGISTRY}/space-agon-mmf:${TAG} .
 
 # Push images
-docker push ${REGISTRY}/space-agon-frontend:${TAG}
-docker push ${REGISTRY}/space-agon-dedicated:${TAG}
-docker push ${REGISTRY}/space-agon-director:${TAG}
-docker push ${REGISTRY}/space-agon-mmf:${TAG}
+if [ ${ENV} = "develop" ];then
+    docker push ${REGISTRY}/space-agon-frontend:${TAG}
+    docker push ${REGISTRY}/space-agon-dedicated:${TAG}
+    docker push ${REGISTRY}/space-agon-director:${TAG}
+    docker push ${REGISTRY}/space-agon-mmf:${TAG}
+fi
 
 # Replace image repository & tags
-ESC_REGISTRY=$(echo ${REGISTRY} | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g') && \
-ESC_TAG=$(echo ${TAG} | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g') && \
-sed -E 's/image: (.*)\/([^\/]*):(.*)/image: '${ESC_REGISTRY}'\/\2:'${ESC_TAG}'/' deploy_template.yaml > deploy.yaml
+if [ ${ENV} = "test" ] ;then
+    REGISTRY=${REGISTRY} TAG=${TAG} REPLICAS_FRONTEND=1 REPLICAS_DEDICATED=1 REQUEST_MEMORY=100Mi REQUEST_CPU=100m \
+    LIMITS_MEMORY=100Mi LIMITS_CPU=100m BUFFER_SIZE=1 MIN_REPLICAS=0 MAX_REPLICAS=1 REPLICAS_MMF=1 \
+	envsubst < deploy_template.yaml > deploy.yaml
+else
+    REGISTRY=${REGISTRY} TAG=${TAG} REPLICAS_FRONTEND=2 REPLICAS_DEDICATED=2 REQUEST_MEMORY=200Mi REQUEST_CPU=500m \
+    LIMITS_MEMORY=200Mi LIMITS_CPU=500m BUFFER_SIZE=2 MIN_REPLICAS=0 MAX_REPLICAS=50 REPLICAS_MMF=2 \
+	envsubst < deploy_template.yaml > deploy.yaml
+fi
