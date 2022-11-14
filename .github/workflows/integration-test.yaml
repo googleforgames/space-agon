@@ -1,0 +1,55 @@
+# Copyright 2022 Google LLC All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Space Agon Integration Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [synchronize, opened]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull repo
+        uses: actions/checkout@v3
+      - name: Start minikube
+        uses: medyagh/setup-minikube@master
+        id: space-agone
+        with:
+          kubernetes-version: v1.24.7
+          cpus: 2
+          memory: 4096m
+      - name: Install helm and envsubst
+        run: |
+          curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null &&
+          sudo apt-get install apt-transport-https --yes && 
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list &&
+          sudo apt-get update &&
+          sudo apt-get install helm gettext-base -y
+      - name: Install Agones in minikube
+        run: make agones-install-local
+      - name: Install Open Match in minikube
+        run: make openmatch-install-local
+      - name: Build space-agone for github-actions
+        run: make build-local
+      - name: Install space-agone in minikube
+        run: make install
+      - name: Run integration-test
+        run: | 
+          nohup minikube tunnel &
+          make integration-test
