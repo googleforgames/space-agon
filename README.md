@@ -80,7 +80,7 @@ $ make openmatch-install
 ```bash
 # Start minikube
 # ref: https://minikube.sigs.k8s.io/docs/commands/start/
-$ minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.24.7 --driv
+$ minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.23.14 --driv
 er=hyperkit
 
 # Install minimized Agones
