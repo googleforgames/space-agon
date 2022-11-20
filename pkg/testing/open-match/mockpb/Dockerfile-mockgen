@@ -1,0 +1,5 @@
+FROM golang:1.18
+RUN apt update && apt -y install git sudo
+RUN /usr/sbin/useradd -u 1000 -d /genuser -m genuser
+RUN mkdir /working
+RUN go install github.com/golang/mock/mockgen@v1.6.0
