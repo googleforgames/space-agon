@@ -228,8 +228,10 @@ $ make integration-test
 
 #### minikube
 
+1. [Create a space-agon k8s cluster via minikube.](#create-the-resources-and-install-gaming-oss)
+
 ```bash
-# Connect to service
+# Connect to service in minikube
 $ minikube tunnel
 
 # Open another terminal and
