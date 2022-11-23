@@ -187,3 +187,5 @@ uninstall:
 integration-test:
 	go test -count=1 -v -timeout 60s test/integration_test.go
 
+
+include pkg/testing/open-match/mockpb/Makefile

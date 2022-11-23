@@ -12,19 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+MOCKGEN_CONTAINER := run-mockgen
+MOCKGEN_BASEDIR := pkg/testing/open-match/mockpb
 
-CONTAINER := run-mockgen
+open-match-mockgen-all: docker-for-mockgen open-match-mockgen
 
-all: docker gen
-
-gen:
+open-match-mockgen:
 	$(eval UID := $(shell stat --print "%u" .))
 	$(eval GID := $(shell stat --print "%g" .))
-	docker run --rm -it -v `pwd`:/working $(CONTAINER) sh -c 'git clone https://github.com/googleforgames/open-match.git /tmp/open-match \
-	&& cd /tmp/open-match/pkg/pb \
-	&& mockgen -source /tmp/open-match/pkg/pb/frontend.pb.go -package mockpb -destination /working/mock_frontend_pb.go \
-	&& mockgen -source /tmp/open-match/pkg/pb/backend.pb.go -package mockpb -destination /working/mock_backend_pb.go \
+	docker run --rm -it -v $(CURDIR)/$(MOCKGEN_BASEDIR):/working $(MOCKGEN_CONTAINER) sh -c 'git clone https://github.com/googleforgames/open-match.git /open-match \
+	&& cd /open-match/pkg/pb \
+	&& mockgen -source /open-match/pkg/pb/frontend.pb.go -package mockpb -destination /working/mock_frontend_pb.go \
+	&& mockgen -source /open-match/pkg/pb/backend.pb.go -package mockpb -destination /working/mock_backend_pb.go \
 	&& chown $(UID):$(GID) /working/mock_backend_pb.go /working/mock_frontend_pb.go'
 
-docker:
-	docker build -t $(CONTAINER) -f Dockerfile-mockgen .
+docker-for-mockgen:
+	docker build -t $(MOCKGEN_CONTAINER) -f $(CURDIR)/$(MOCKGEN_BASEDIR)/Dockerfile-mockgen .
+
