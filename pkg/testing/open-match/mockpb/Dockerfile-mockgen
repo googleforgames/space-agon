@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.18-slim
+FROM golang:1.18-alpine
 
 RUN apk update && apk add git
 RUN go install github.com/golang/mock/mockgen@v1.6.0
