@@ -80,7 +80,7 @@ $ make openmatch-install
 ```bash
 # Start minikube
 # ref: https://minikube.sigs.k8s.io/docs/commands/start/
-$ minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.24.7 --driv
+$ minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.23.14 --driv
 er=hyperkit
 
 # Install minimized Agones
@@ -228,8 +228,10 @@ $ make integration-test
 
 #### minikube
 
+1. [Create a space-agon k8s cluster via minikube.](#create-the-resources-and-install-gaming-oss)
+
 ```bash
-# Connect to service
+# Connect to service in minikube
 $ minikube tunnel
 
 # Open another terminal and
