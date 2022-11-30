@@ -15,8 +15,10 @@
 MOCKGEN_CONTAINER := run-mockgen
 MOCKGEN_BASEDIR := pkg/testing/open-match/mockpb
 
+.PHONY: open-match-mockgen-all
 open-match-mockgen-all: docker-for-mockgen open-match-mockgen
 
+.PHONY: open-match-mockgen
 open-match-mockgen:
 	$(eval UID := $(shell stat --print "%u" .))
 	$(eval GID := $(shell stat --print "%g" .))
@@ -26,6 +28,7 @@ open-match-mockgen:
 	&& mockgen -source /open-match/pkg/pb/backend.pb.go -package mockpb -destination /working/mock_backend_pb.go \
 	&& chown $(UID):$(GID) /working/mock_backend_pb.go /working/mock_frontend_pb.go'
 
+.PHONY: docker-for-mockgen
 docker-for-mockgen:
 	docker build -t $(MOCKGEN_CONTAINER) -f $(CURDIR)/$(MOCKGEN_BASEDIR)/Dockerfile-mockgen .
 
