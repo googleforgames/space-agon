@@ -86,18 +86,16 @@ func streamAssignments(ctx context.Context, assignments chan *pb.Assignment, err
 	fe := pb.NewFrontendServiceClient(conn)
 
 	var ticketId string
-	{
-		req := &pb.CreateTicketRequest{
-			Ticket: &pb.Ticket{},
-		}
-
-		resp, err := fe.CreateTicket(ctx, req)
-		if err != nil {
-			errs <- fmt.Errorf("error creating open match ticket: %w", err)
-			return
-		}
-		ticketId = resp.Id
+	createReq := &pb.CreateTicketRequest{
+		Ticket: &pb.Ticket{},
 	}
+
+	resp, err := fe.CreateTicket(ctx, createReq)
+	if err != nil {
+		errs <- fmt.Errorf("error creating open match ticket: %w", err)
+		return
+	}
+	ticketId = resp.Id
 
 	defer func() {
 		_, err := fe.DeleteTicket(context.Background(), &pb.DeleteTicketRequest{TicketId: ticketId})
@@ -106,23 +104,21 @@ func streamAssignments(ctx context.Context, assignments chan *pb.Assignment, err
 		}
 	}()
 
-	{
-		req := &pb.WatchAssignmentsRequest{
-			TicketId: ticketId,
-		}
+	watchAssignmentReq := &pb.WatchAssignmentsRequest{
+		TicketId: ticketId,
+	}
 
-		stream, err := fe.WatchAssignments(ctx, req)
+	stream, err := fe.WatchAssignments(ctx, watchAssignmentReq)
+	if err != nil {
+		errs <- fmt.Errorf("error getting assignment stream: %w", err)
+		return
+	}
+	for {
+		resp, err := stream.Recv()
 		if err != nil {
-			errs <- fmt.Errorf("error getting assignment stream: %w", err)
+			errs <- fmt.Errorf("error streaming assignment: %w", err)
 			return
 		}
-		for {
-			resp, err := stream.Recv()
-			if err != nil {
-				errs <- fmt.Errorf("error streaming assignment: %w", err)
-				return
-			}
-			assignments <- resp.Assignment
-		}
+		assignments <- resp.Assignment
 	}
 }
