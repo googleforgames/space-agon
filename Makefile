@@ -82,6 +82,9 @@ help:
 	@echo "Run integration test"
 	@echo "    make integration-test"
 	@echo ""
+	@echo "Create some mocks for Open Match"
+	@echo "    make open-match-mockgen"
+	@echo ""
 
 # build space-agon docker images in local
 .PHONY: build-local
