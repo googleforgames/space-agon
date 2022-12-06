@@ -22,11 +22,11 @@ open-match-mockgen-all: docker-for-mockgen open-match-mockgen
 open-match-mockgen:
 	$(eval UID := $(shell stat --print "%u" .))
 	$(eval GID := $(shell stat --print "%g" .))
-	docker run --rm -it -v $(CURDIR)/$(MOCKGEN_BASEDIR):/working $(MOCKGEN_CONTAINER) sh -c 'git clone https://github.com/googleforgames/open-match.git /open-match \
-	&& cd /open-match/pkg/pb \
-	&& mockgen -source /open-match/pkg/pb/frontend.pb.go -package mockpb -destination /working/mock_frontend_pb.go \
-	&& mockgen -source /open-match/pkg/pb/backend.pb.go -package mockpb -destination /working/mock_backend_pb.go \
-	&& chown $(UID):$(GID) /working/mock_backend_pb.go /working/mock_frontend_pb.go'
+	docker run --rm -it -v $(CURDIR):/working $(MOCKGEN_CONTAINER) sh -c 'git clone https://github.com/googleforgames/open-match.git /open-match \
+	&& cd /working \
+	&& mockgen -source /open-match/pkg/pb/frontend.pb.go -package mockpb -destination /working/$(MOCKGEN_BASEDIR)/mock_frontend_pb.go \
+	&& mockgen -source /open-match/pkg/pb/backend.pb.go -package mockpb -destination /working/$(MOCKGEN_BASEDIR)/mock_backend_pb.go \
+	&& chown $(UID):$(GID) /working/$(MOCKGEN_BASEDIR)/mock_backend_pb.go /working/$(MOCKGEN_BASEDIR)/mock_frontend_pb.go'
 
 .PHONY: docker-for-mockgen
 docker-for-mockgen:
