@@ -86,11 +86,11 @@ func streamAssignments(ctx context.Context, assignments chan *pb.Assignment, err
 	fe := pb.NewFrontendServiceClient(conn)
 
 	var ticketId string
-	createReq := &pb.CreateTicketRequest{
+	crReq := &pb.CreateTicketRequest{
 		Ticket: &pb.Ticket{},
 	}
 
-	resp, err := fe.CreateTicket(ctx, createReq)
+	resp, err := fe.CreateTicket(ctx, crReq)
 	if err != nil {
 		errs <- fmt.Errorf("error creating open match ticket: %w", err)
 		return
@@ -104,11 +104,11 @@ func streamAssignments(ctx context.Context, assignments chan *pb.Assignment, err
 		}
 	}()
 
-	watchAssignmentReq := &pb.WatchAssignmentsRequest{
+	waReq := &pb.WatchAssignmentsRequest{
 		TicketId: ticketId,
 	}
 
-	stream, err := fe.WatchAssignments(ctx, watchAssignmentReq)
+	stream, err := fe.WatchAssignments(ctx, waReq)
 	if err != nil {
 		errs <- fmt.Errorf("error getting assignment stream: %w", err)
 		return
