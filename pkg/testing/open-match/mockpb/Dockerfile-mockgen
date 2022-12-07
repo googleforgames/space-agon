@@ -17,3 +17,5 @@ FROM golang:1.18-alpine
 RUN apk update && apk add git
 RUN go install github.com/golang/mock/mockgen@v1.6.0
 RUN mkdir /working
+
+COPY LICENSE.txt /

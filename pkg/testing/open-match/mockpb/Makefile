@@ -24,11 +24,11 @@ open-match-mockgen:
 	$(eval GID := $(shell stat --print "%g" .))
 	docker run --rm -it -v $(CURDIR):/working $(MOCKGEN_CONTAINER) sh -c 'git clone https://github.com/googleforgames/open-match.git /open-match \
 	&& cd /working \
-	&& mockgen -source /open-match/pkg/pb/frontend.pb.go -package mockpb -destination /working/$(MOCKGEN_BASEDIR)/mock_frontend_pb.go \
-	&& mockgen -source /open-match/pkg/pb/backend.pb.go -package mockpb -destination /working/$(MOCKGEN_BASEDIR)/mock_backend_pb.go \
+	&& mockgen -source /open-match/pkg/pb/frontend.pb.go -package mockpb -destination /working/$(MOCKGEN_BASEDIR)/mock_frontend_pb.go -copyright_file /LICENSE.txt \
+	&& mockgen -source /open-match/pkg/pb/backend.pb.go -package mockpb -destination /working/$(MOCKGEN_BASEDIR)/mock_backend_pb.go -copyright_file /LICENSE.txt \
 	&& chown $(UID):$(GID) /working/$(MOCKGEN_BASEDIR)/mock_backend_pb.go /working/$(MOCKGEN_BASEDIR)/mock_frontend_pb.go'
 
 .PHONY: docker-for-mockgen
 docker-for-mockgen:
-	docker build -t $(MOCKGEN_CONTAINER) -f $(CURDIR)/$(MOCKGEN_BASEDIR)/Dockerfile-mockgen .
+	docker build -t $(MOCKGEN_CONTAINER) -f $(CURDIR)/$(MOCKGEN_BASEDIR)/Dockerfile-mockgen $(CURDIR)/$(MOCKGEN_BASEDIR)
 
