@@ -36,9 +36,9 @@ import (
 )
 
 const (
-	OM_API_HOST  = "open-match-backend.open-match.svc.cluster.local:50505"
-	MMF_API_HOST = "mmf.default.svc.cluster.local"
-	MMF_API_PORT = 50502
+	omApiHost  = "open-match-backend.open-match.svc.cluster.local:50505"
+	mmfApiHost = "mmf.default.svc.cluster.local"
+	mmfApiPort = 50502
 )
 
 type Client struct {
@@ -66,7 +66,7 @@ func main() {
 }
 
 func createOMBackendClient() (pb.BackendServiceClient, func() error) {
-	conn, err := grpc.Dial(OM_API_HOST, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(omApiHost, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(err)
 	}
@@ -90,8 +90,8 @@ func createOMFetchMatchesRequest() *pb.FetchMatchesRequest {
 	return &pb.FetchMatchesRequest{
 		// om-function:50502 -> the internal hostname & port number of the MMF service in our Kubernetes cluster
 		Config: &pb.FunctionConfig{
-			Host: MMF_API_HOST,
-			Port: MMF_API_PORT,
+			Host: mmfApiHost,
+			Port: mmfApiPort,
 			Type: pb.FunctionConfig_GRPC,
 		},
 		Profile: &pb.MatchProfile{
