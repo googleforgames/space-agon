@@ -22,12 +22,12 @@
 PROJECT=$(shell gcloud config list --format 'value(core.project)')
 LOCATION=us-central1
 REPOSITORY=space-agon
-REGISTRY=${LOCATION}-docker.pkg.dev/${PROJECT}/${REPOSITORY}
+REGISTRY=us-central1-docker.pkg.dev/prj-zeld-infra-core/space-agon
 
 AGONES_NS:=agones-system
 OM_NS:=open-match
-AGONES_VER:=1.27.0
-OM_VER:=1.5.0
+AGONES_VER:=1.29.0
+OM_VER:=1.6.0
 
 #   _____                    _
 #  |_   _|_ _ _ __ __ _  ___| |_ ___

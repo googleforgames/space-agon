@@ -1,0 +1,17 @@
+steps:
+- id: 'git-repo-status'
+  name: 'alpine'
+  entrypoint: 'sh'
+  dir: /workspace
+  args:
+  - '-c'
+  - |
+      echo "***********************"
+      echo "$REPO_NAME"
+      echo "$BRANCH_NAME"
+      echo image: "$_REGISTRY/$_IMAGE:$_TAG"
+      echo "***********************"
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', '${_REGISTRY}/${_IMAGE}:${_TAG}', '-f', '${_DOCKERFILE}', '.' ]
+images:
+- '${_REGISTRY}/${_IMAGE}'
