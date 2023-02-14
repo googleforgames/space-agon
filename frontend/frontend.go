@@ -98,6 +98,8 @@ func streamAssignments(ctx context.Context, assignments chan *pb.Assignment, err
 		ticketId = resp.Id
 	}
 
+	log.Println("Ticket ID: ", ticketId)
+
 	defer func() {
 		_, err := fe.DeleteTicket(context.Background(), &pb.DeleteTicketRequest{TicketId: ticketId})
 		if err != nil {
@@ -109,6 +111,8 @@ func streamAssignments(ctx context.Context, assignments chan *pb.Assignment, err
 		req := &pb.WatchAssignmentsRequest{
 			TicketId: ticketId,
 		}
+
+		log.Println("Assignment request: ", req)
 
 		stream, err := fe.WatchAssignments(ctx, req)
 		if err != nil {
@@ -122,6 +126,8 @@ func streamAssignments(ctx context.Context, assignments chan *pb.Assignment, err
 				return
 			}
 			assignments <- resp.Assignment
+
+			log.Println("Assignments: ", assignments)
 		}
 	}
 }

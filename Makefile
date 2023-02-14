@@ -26,8 +26,8 @@ REGISTRY=us-central1-docker.pkg.dev/prj-zeld-infra-core/space-agon
 
 AGONES_NS:=agones-system
 OM_NS:=open-match
-AGONES_VER:=1.29.0
-OM_VER:=1.6.0
+AGONES_VER:=1.27.0
+OM_VER:=1.5.0
 
 #   _____                    _
 #  |_   _|_ _ _ __ __ _  ___| |_ ___
@@ -150,11 +150,10 @@ openmatch-install-local:
 # install open-match
 .PHONY: openmatch-install
 openmatch-install:
-	kubectl create namespace $(OM_NS)
-	kubectl apply -f https://open-match.dev/install/v$(OM_VER)/yaml/01-open-match-core.yaml \
-		-f https://open-match.dev/install/v$(OM_VER)/yaml/06-open-match-override-configmap.yaml \
-		-f https://open-match.dev/install/v$(OM_VER)/yaml/07-open-match-default-evaluator.yaml \
-		--namespace $(OM_NS)
+	kubectl apply -f https://open-match.dev/install/v${OM_VER}/yaml/01-open-match-core.yaml \
+		-f https://open-match.dev/install/v${OM_VER}/yaml/06-open-match-override-configmap.yaml \
+		-f https://open-match.dev/install/v${OM_VER}/yaml/07-open-match-default-evaluator.yaml \
+		--namespace ${OM_NS}
 
 # uninstall open-match in local-cluster
 .PHONY: openmatch-uninstall-local
@@ -166,7 +165,6 @@ openmatch-uninstall-local:
 .PHONY: openmatch-uninstall
 openmatch-uninstall:
 	kubectl delete psp,clusterrole,clusterrolebinding --selector=release=$(OM_NS)
-	kubectl delete namespace $(OM_NS)
 
 .PHONY: skaffold-setup
 skaffold-setup:

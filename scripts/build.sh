@@ -32,32 +32,32 @@ fi
 # Build images
 # nohup gcloud builds submit --config=./cloudbuild.yaml \
 #   --substitutions=_REGISTRY=${REGISTRY},_TAG=${TAG},_IMAGE='space-agon-frontend',_DOCKERFILE='./Frontend.Dockerfile' . &
-# nohup gcloud builds submit --config=./cloudbuild.yaml \
-#   --substitutions=_REGISTRY=${REGISTRY},_TAG=${TAG},_IMAGE='space-agon-dedicated',_DOCKERFILE='./Dedicated.Dockerfile' . &
+nohup gcloud builds submit --config=./cloudbuild.yaml \
+  --substitutions=_REGISTRY=${REGISTRY},_TAG=${TAG},_IMAGE='space-agon-dedicated',_DOCKERFILE='./Dedicated.Dockerfile' . &
 # nohup gcloud builds submit --config=./cloudbuild.yaml \
 #   --substitutions=_REGISTRY=${REGISTRY},_TAG=${TAG},_IMAGE='space-agon-director',_DOCKERFILE='./Director.Dockerfile' . &
 # nohup gcloud builds submit --config=./cloudbuild.yaml \
 #   --substitutions=_REGISTRY=${REGISTRY},_TAG=${TAG},_IMAGE='space-agon-mmf',_DOCKERFILE='./Mmf.Dockerfile' . &
-# docker build -f ./Frontend.Dockerfile -t ${REGISTRY}/space-agon-frontend:${TAG} .
+docker build -f ./Frontend.Dockerfile -t ${REGISTRY}/space-agon-frontend:${TAG} .
 # docker build -f ./Dedicated.Dockerfile -t ${REGISTRY}/space-agon-dedicated:${TAG} .
 # docker build -f ./Director.Dockerfile -t ${REGISTRY}/space-agon-director:${TAG} .
 # docker build -f ./Mmf.Dockerfile -t ${REGISTRY}/space-agon-mmf:${TAG} .
 
 # Push images
-# if [ ${ENV} = "develop" ];then
-#     docker push ${REGISTRY}/space-agon-frontend:${TAG}
-#     docker push ${REGISTRY}/space-agon-dedicated:${TAG}
-#     docker push ${REGISTRY}/space-agon-director:${TAG}
-#     docker push ${REGISTRY}/space-agon-mmf:${TAG}
-# fi
+if [ ${ENV} = "develop" ];then
+    docker push ${REGISTRY}/space-agon-frontend:${TAG}
+    # docker push ${REGISTRY}/space-agon-dedicated:${TAG}
+    # docker push ${REGISTRY}/space-agon-director:${TAG}
+    # docker push ${REGISTRY}/space-agon-mmf:${TAG}
+fi
 
 # Replace image repository & tags
-if [ ${ENV} = "test" ] ;then
-    REGISTRY=${REGISTRY} TAG=${TAG} REPLICAS_FRONTEND=1 REPLICAS_DEDICATED=1 REQUEST_MEMORY=100Mi REQUEST_CPU=100m \
-    LIMITS_MEMORY=100Mi LIMITS_CPU=100m BUFFER_SIZE=1 MIN_REPLICAS=0 MAX_REPLICAS=1 REPLICAS_MMF=1 \
-	envsubst < deploy_template.yaml > deploy.yaml
-else
-    REGISTRY=${REGISTRY} TAG=${TAG} REPLICAS_FRONTEND=2 REPLICAS_DEDICATED=2 REQUEST_MEMORY=200Mi REQUEST_CPU=500m \
-    LIMITS_MEMORY=200Mi LIMITS_CPU=500m BUFFER_SIZE=2 MIN_REPLICAS=0 MAX_REPLICAS=50 REPLICAS_MMF=2 \
-	envsubst < deploy_template.yaml > deploy.yaml
-fi
+# if [ ${ENV} = "test" ] ;then
+#     REGISTRY=${REGISTRY} TAG=${TAG} REPLICAS_FRONTEND=1 REPLICAS_DEDICATED=1 REQUEST_MEMORY=100Mi REQUEST_CPU=100m \
+#     LIMITS_MEMORY=100Mi LIMITS_CPU=100m BUFFER_SIZE=1 MIN_REPLICAS=0 MAX_REPLICAS=1 REPLICAS_MMF=1 \
+# 	envsubst < deploy_template.yaml > deploy.yaml
+# else
+#     REGISTRY=${REGISTRY} TAG=${TAG} REPLICAS_FRONTEND=2 REPLICAS_DEDICATED=2 REQUEST_MEMORY=200Mi REQUEST_CPU=500m \
+#     LIMITS_MEMORY=200Mi LIMITS_CPU=500m BUFFER_SIZE=2 MIN_REPLICAS=0 MAX_REPLICAS=50 REPLICAS_MMF=2 \
+# 	envsubst < deploy_template.yaml > deploy.yaml
+# fi
