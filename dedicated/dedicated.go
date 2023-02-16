@@ -107,6 +107,8 @@ func (d *dedicated) Handler(c *websocket.Conn) {
 	cid := <-d.nextCid
 	d.nextCid <- cid + 1
 
+	log.Println("Client ID?", cid, d.nextCid)
+
 	toSend, recieve := d.mr.connect(cid)
 	defer d.mr.disconnect(cid)
 
