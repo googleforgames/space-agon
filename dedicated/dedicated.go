@@ -125,7 +125,6 @@ func (d *dedicated) Handler(c *websocket.Conn) {
 		for {
 			select {
 			case memos := <-toSend:
-				log.Println("what is this [ 1 ]?", memos)
 				err := stream.Send(&pb.Memos{Memos: memos})
 				if err != nil {
 					log.Printf("Client %d had send memos error %v", cid, err)
@@ -142,7 +141,6 @@ func (d *dedicated) Handler(c *websocket.Conn) {
 		defer cancel()
 		for {
 			memos := &pb.Memos{}
-			log.Println("what is this [ 2 ]?", memos)
 			err := stream.Recv(memos)
 			if err != nil {
 				log.Printf("Client %d had read/decode error %v", cid, err)
