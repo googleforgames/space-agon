@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: us-central1-docker.pkg.dev/prj-zeld-infra-core/space-agon/space-agon-frontend:170f737
+          image: us-central1-docker.pkg.dev/prj-zeld-infra-core/space-agon/space-agon-frontend:28b1f8b
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
@@ -75,7 +75,7 @@ spec:
         spec:
           containers:
             - name: dedicated
-              image: us-central1-docker.pkg.dev/prj-zeld-infra-core/space-agon/space-agon-dedicated:277b61e
+              image: us-central1-docker.pkg.dev/prj-zeld-infra-core/space-agon/space-agon-dedicated:28b1f8b
               imagePullPolicy: IfNotPresent
               resources:
                 requests:
