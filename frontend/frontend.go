@@ -20,7 +20,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/mbychkowski/space-agon/space-agon/game/protostream"
+	"github.com/mbychkowski/space-agon/game/protostream"
 	"golang.org/x/net/websocket"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/pkg/pb"

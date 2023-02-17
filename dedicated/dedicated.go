@@ -26,13 +26,13 @@ import (
 
 	agonesSdk "agones.dev/agones/pkg/sdk"
 	agones "agones.dev/agones/sdks/go"
-	"github.com/mbychkowski/space-agon/space-agon/game"
-	"github.com/mbychkowski/space-agon/space-agon/game/pb"
-	"github.com/mbychkowski/space-agon/space-agon/game/protostream"
+	"github.com/mbychkowski/space-agon/game"
+	"github.com/mbychkowski/space-agon/game/pb"
+	"github.com/mbychkowski/space-agon/game/protostream"
 	"golang.org/x/net/websocket"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	pb "github.com/mbychkowski/space-agon/listener/pb"
+	pb "github.com/mbychkowski/listener/pb"
 )
 
 const (

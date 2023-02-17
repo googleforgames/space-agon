@@ -26,4 +26,4 @@ find mount -name '*.proto' \
     -I/usr/include/ \
     --go_out=plugins=grpc:output \;
 
-cp -r -f output/github.com/mbychkowski/space-agon/space-agon/* mount/
+cp -r -f output/github.com/mbychkowski/space-agon/* mount/

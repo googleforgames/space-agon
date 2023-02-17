@@ -25,9 +25,9 @@ import (
 	"sync"
 	"syscall/js"
 
-	"github.com/mbychkowski/space-agon/space-agon/game"
-	"github.com/mbychkowski/space-agon/space-agon/game/pb"
-	"github.com/mbychkowski/space-agon/space-agon/game/protostream"
+	"github.com/mbychkowski/space-agon/game"
+	"github.com/mbychkowski/space-agon/game/pb"
+	"github.com/mbychkowski/space-agon/game/protostream"
 	ompb "open-match.dev/open-match/pkg/pb"
 )
 

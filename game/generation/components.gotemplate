@@ -26,7 +26,7 @@ is still rare */}}
 // THIS FILE IS GENERATED, DO NOT EDIT
 // THIS FILE IS GENERATED, DO NOT EDIT
 // If you want to define new components, edit game/generation/generation.go
-// Then run: go generate github.com/mbychkowski/space-agon/space-agon/game/generation
+// Then run: go generate github.com/mbychkowski/space-agon/game/generation
 
 package game
 

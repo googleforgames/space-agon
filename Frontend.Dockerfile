@@ -15,7 +15,7 @@
 FROM golang:1.17.7 as builder
 ENV GO111MODULE=on
 
-WORKDIR /go/src/github.com/mbychkowski/space-agon/space-agon
+WORKDIR /go/src/github.com/mbychkowski/space-agon
 
 COPY go.sum go.mod ./
 RUN go mod download
@@ -25,8 +25,8 @@ COPY frontend ./frontend
 COPY game ./game
 COPY client ./client
 COPY static /app/static
-RUN CGO_ENABLED=0 go build -installsuffix cgo -o /app/frontend github.com/mbychkowski/space-agon/space-agon/frontend
-RUN GOOS=js GOARCH=wasm go build -o /app/static/client.wasm github.com/mbychkowski/space-agon/space-agon/client
+RUN CGO_ENABLED=0 go build -installsuffix cgo -o /app/frontend github.com/mbychkowski/space-agon/frontend
+RUN GOOS=js GOARCH=wasm go build -o /app/static/client.wasm github.com/mbychkowski/space-agon/client
 RUN cp /usr/local/go/misc/wasm/wasm_exec.js /app/static/
 
 FROM gcr.io/distroless/static:nonroot

@@ -26,8 +26,8 @@ import (
 
 	"golang.org/x/net/websocket"
 
-	"github.com/mbychkowski/space-agon/space-agon/game/pb"
-	"github.com/mbychkowski/space-agon/space-agon/game/protostream"
+	"github.com/mbychkowski/space-agon/game/pb"
+	"github.com/mbychkowski/space-agon/game/protostream"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"

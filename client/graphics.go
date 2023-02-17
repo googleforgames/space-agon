@@ -23,8 +23,8 @@ import (
 	"math"
 	"syscall/js"
 
-	"github.com/mbychkowski/space-agon/space-agon/client/webgl"
-	"github.com/mbychkowski/space-agon/space-agon/game"
+	"github.com/mbychkowski/space-agon/client/webgl"
+	"github.com/mbychkowski/space-agon/game"
 )
 
 type graphics struct {

@@ -15,7 +15,7 @@
 
 syntax = "proto3";
 package spaceagon;
-option go_package = "github.com/mbychkowski/space-agon/space-agon/game/pb";
+option go_package = "github.com/mbychkowski/space-agon/game/pb";
 
 message ClientInitialize {
   int64 cid = 1;

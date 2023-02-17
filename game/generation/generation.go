@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate go run github.com/mbychkowski/space-agon/space-agon/game/generation
-//go:generate go fmt github.com/mbychkowski/space-agon/space-agon/game
+//go:generate go run github.com/mbychkowski/space-agon/game/generation
+//go:generate go fmt github.com/mbychkowski/space-agon/game
 package main
 
 import (
