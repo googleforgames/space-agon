@@ -15,14 +15,14 @@
 FROM golang:1.17.7 as builder
 ENV GO111MODULE=on
 
-WORKDIR /go/src/github.com/mbychkowski
+WORKDIR /go/src/github.com/mbychkowski/space-agon
 
 COPY go.sum go.mod ./
 RUN go mod download
 
 RUN mkdir /app
 COPY listener ./listener
-RUN CGO_ENABLED=0 go build -installsuffix cgo -o /app/listener github.com/mbychkowski/listener/pb
+RUN CGO_ENABLED=0 go build -installsuffix cgo -o /app/listener github.com/mbychkowski/space-agon/listener/pb
 
 FROM gcr.io/distroless/static:nonroot
 COPY --from=builder --chown=nonroot "/app" "/app"

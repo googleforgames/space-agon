@@ -32,7 +32,7 @@ import (
 	"golang.org/x/net/websocket"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	pb "github.com/mbychkowski/listener/pb"
+	pb "github.com/mbychkowski/space-agon/listener/pb"
 )
 
 const (
