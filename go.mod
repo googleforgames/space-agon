@@ -1,4 +1,4 @@
-module github.com/googleforgames/space-agon
+module github.com/mbychkowski/space-agon
 
 // Copyright 2019 Google LLC
 //
