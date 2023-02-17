@@ -75,7 +75,7 @@ spec:
         spec:
           containers:
             - name: dedicated
-              image: us-central1-docker.pkg.dev/prj-zeld-infra-core/space-agon/space-agon-dedicated:42cdea9
+              image: us-central1-docker.pkg.dev/prj-zeld-infra-core/space-agon/space-agon-dedicated:c6566c7
               imagePullPolicy: IfNotPresent
               resources:
                 requests:
