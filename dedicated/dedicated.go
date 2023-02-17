@@ -42,7 +42,8 @@ const (
 )
 
 var (
-		addr = flag.String("addr", listApiHost+":"+listApiPort, "the address to connect to")
+	addr = flag.String("addr", listApiHost+":"+listApiPort, "the address to connect to")
+	name = flag.String("name", "MikeB!", "Name to greet")
 )
 
 func main() {

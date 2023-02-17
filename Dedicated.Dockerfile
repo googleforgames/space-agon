@@ -23,6 +23,7 @@ RUN go mod download
 RUN mkdir /app
 COPY dedicated ./dedicated
 COPY game ./game
+COPY listener ./listener
 RUN CGO_ENABLED=0 go build -installsuffix cgo -o /app/dedicated github.com/mbychkowski/space-agon/dedicated
 
 FROM gcr.io/distroless/static:nonroot

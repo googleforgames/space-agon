@@ -75,7 +75,7 @@ spec:
         spec:
           containers:
             - name: dedicated
-              image: us-central1-docker.pkg.dev/prj-zeld-infra-core/space-agon/space-agon-dedicated:c6566c7
+              image: us-central1-docker.pkg.dev/prj-zeld-infra-core/space-agon/space-agon-dedicated:860fc7d
               imagePullPolicy: IfNotPresent
               resources:
                 requests:
@@ -207,3 +207,43 @@ spec:
       protocol: TCP
   selector:
     run: mmf
+
+---
+###############################################
+# Listener
+###############################################
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: listener
+spec:
+  selector:
+    matchLabels:
+      run: listener
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: listener
+    spec:
+      containers:
+        - name: listener
+          image: us-central1-docker.pkg.dev/prj-zeld-infra-core/space-agon/space-agon-listener:860fc7d
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 50051
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: listener
+  labels:
+    run: listener
+spec:
+  ports:
+    - port: 50051
+      protocol: TCP
+  selector:
+    run: listener
