@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"html"
 	"log"
@@ -32,12 +33,12 @@ import (
 	"golang.org/x/net/websocket"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	pb "github.com/mbychkowski/space-agon/listener/pb"
+	pbListener "github.com/mbychkowski/space-agon/listener/pb"
 )
 
 const (
 	listApiHost = "listener.default.svc.cluster.local"
-	listApiPort = 50051
+	listApiPort = "50051"
 )
 
 var (
@@ -64,7 +65,16 @@ func main() {
 		log.Fatalf("did not connect: %v", err)
 	}
 	defer conn.Close()
-	c := pb.NewGreeterClient(conn)
+	c := pbListener.NewGreeterClient(conn)
+
+		// Contact the server and print out its response.
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	r, err := c.SayHelloAgain(ctx, &pbListener.HelloRequest{Name: *name})
+	if err != nil {
+		log.Fatalf("could not greet: %v", err)
+	}
+	log.Printf("Greeting: %s", r.GetMessage())
 }
 
 type dedicated struct {
@@ -222,15 +232,6 @@ func newMemoRouter() *memoRouter {
 					actual := a.DestroyEvent
 					log.Println("destroy memo", memo)
 					delete(mr.createMemos, actual.Nid)
-
-					// Contact the server and print out its response.
-					ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-					defer cancel()
-					r, err := c.SayHelloAgain(ctx, &pb.HelloRequest{Name: *name})
-					if err != nil {
-						log.Fatalf("could not greet: %v", err)
-					}
-					log.Printf("Greeting: %s", r.GetMessage())
 				}
 
 				for cid := range mr.outgoing {
