@@ -34,12 +34,15 @@ fi
 #   --substitutions=_REGISTRY=${REGISTRY},_TAG=${TAG},_IMAGE='space-agon-frontend',_DOCKERFILE='./Frontend.Dockerfile' . &
 nohup gcloud builds submit --config=./cloudbuild.yaml \
   --substitutions=_REGISTRY=${REGISTRY},_TAG=${TAG},_IMAGE='space-agon-dedicated',_DOCKERFILE='./Dedicated.Dockerfile' . &
+nohup gcloud builds submit --config=./cloudbuild.yaml \
+  --substitutions=_REGISTRY=${REGISTRY},_TAG=${TAG},_IMAGE='space-agon-listener',_DOCKERFILE='./Listener.Dockerfile' . &
 # nohup gcloud builds submit --config=./cloudbuild.yaml \
 #   --substitutions=_REGISTRY=${REGISTRY},_TAG=${TAG},_IMAGE='space-agon-director',_DOCKERFILE='./Director.Dockerfile' . &
 # nohup gcloud builds submit --config=./cloudbuild.yaml \
 #   --substitutions=_REGISTRY=${REGISTRY},_TAG=${TAG},_IMAGE='space-agon-mmf',_DOCKERFILE='./Mmf.Dockerfile' . &
 # docker build -f ./Frontend.Dockerfile -t ${REGISTRY}/space-agon-frontend:${TAG} .
 docker build -f ./Dedicated.Dockerfile -t ${REGISTRY}/space-agon-dedicated:${TAG} .
+docker build -f ./Listener.Dockerfile -t ${REGISTRY}/space-agon-listener:${TAG} .
 # docker build -f ./Director.Dockerfile -t ${REGISTRY}/space-agon-director:${TAG} .
 # docker build -f ./Mmf.Dockerfile -t ${REGISTRY}/space-agon-mmf:${TAG} .
 
@@ -47,6 +50,7 @@ docker build -f ./Dedicated.Dockerfile -t ${REGISTRY}/space-agon-dedicated:${TAG
 if [ ${ENV} = "develop" ];then
     # docker push ${REGISTRY}/space-agon-frontend:${TAG}
     docker push ${REGISTRY}/space-agon-dedicated:${TAG}
+    docker push ${REGISTRY}/space-agon-listener:${TAG}
     # docker push ${REGISTRY}/space-agon-director:${TAG}
     # docker push ${REGISTRY}/space-agon-mmf:${TAG}
 fi
