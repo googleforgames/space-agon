@@ -225,13 +225,15 @@ func newMemoRouter() *memoRouter {
 				// 	mr.createMemos[actual.Nid] = memo
 				case *pb.Memo_SpawnMissile:
 					actual := a.SpawnMissile
+					log.Println("SpawnMissile: ", actual)
 					mr.createMemos[actual.Nid] = memo
 				case *pb.Memo_SpawnShip:
 					actual := a.SpawnShip
+					log.Println("SpawnShip: ", actual)
 					mr.createMemos[actual.Nid] = memo
 				case *pb.Memo_DestroyEvent:
 					actual := a.DestroyEvent
-					log.Println("destroy memo", memo)
+					log.Println("DestroyEvent", memo)
 					delete(mr.createMemos, actual.Nid)
 				}
 
