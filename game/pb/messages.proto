@@ -1,4 +1,4 @@
- 
+
 // Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,7 @@
 
 syntax = "proto3";
 package spaceagon;
-option go_package = "github.com/googleforgames/space-agon/game/pb";
+option go_package = "github.com/mbychkowski/space-agon/space-agon/game/pb";
 
 message ClientInitialize {
   int64 cid = 1;
@@ -39,7 +39,7 @@ message Memo {
     RotTracks rot_tracks = 12;
     SpinTracks spin_tracks = 13;
     ShipControlTrack ship_control_track = 14;
- 
+
     // TODO: Remove
   //  SpawnEvent spawn_event = 15;
     DestroyEvent destroy_event = 16;

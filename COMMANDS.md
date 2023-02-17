@@ -2,7 +2,7 @@ These are some additional commands which are useful for development.
 
 Generate components file:
 ```
-go generate github.com/googleforgames/space-agon/game/generation
+go generate github.com/mbychkowski/space-agon/space-agon/game/generation
 ```
 
 Rebuild proto generates files:
@@ -14,16 +14,16 @@ Mother of all commands:
 ```
 
 # Once
-docker build -f=Dockerfile.build-protos -t build-protos . 
+docker build -f=Dockerfile.build-protos -t build-protos .
 
 # Every update
 
-go generate github.com/googleforgames/space-agon/game/generation && \
+go generate github.com/mbychkowski/space-agon/space-agon/game/generation && \
 docker run --rm --mount type=bind,source="$(pwd)",target=/workdir/mount build-protos && \
 TAG=$(date +INDEV-%Y%m%d-%H%M%S) && \
 REGISTRY=gcr.io/$(gcloud config list --format 'value(core.project)') && \
-GOOS=js GOARCH=wasm go test github.com/googleforgames/space-agon/client/... && \
-go test github.com/googleforgames/space-agon/...
+GOOS=js GOARCH=wasm go test github.com/mbychkowski/space-agon/space-agon/client/... && \
+go test github.com/mbychkowski/space-agon/space-agon/...
 
 
 
@@ -48,16 +48,16 @@ Run locally
 ```
 # Gameserver - RUN FIRST
 
-go generate github.com/googleforgames/space-agon/game/generation && \
+go generate github.com/mbychkowski/space-agon/space-agon/game/generation && \
 docker run --rm --mount type=bind,source="$(pwd)",target=/workdir/mount build-protos && \
-go test github.com/googleforgames/space-agon/... && \
+go test github.com/mbychkowski/space-agon/space-agon/... && \
 docker build . -f Dedicated.Dockerfile -t space-agon-dedicated && \
 docker run -p 2156:2156/tcp -e DISABLE_AGONES=true space-agon-dedicated
 
 # Frontend - RUN SECOND
 
-GOOS=js GOARCH=wasm go test github.com/googleforgames/space-agon/client/... && \
-go test github.com/googleforgames/space-agon/... && \
+GOOS=js GOARCH=wasm go test github.com/mbychkowski/space-agon/space-agon/client/... && \
+go test github.com/mbychkowski/space-agon/space-agon/... && \
 docker build . -f Frontend.Dockerfile -t space-agon-frontend && \
 docker run -p 2157:8080/tcp space-agon-frontend
 

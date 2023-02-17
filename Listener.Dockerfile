@@ -22,7 +22,7 @@ RUN go mod download
 
 RUN mkdir /app
 COPY listener ./listener
-RUN CGO_ENABLED=0 go build -installsuffix cgo -o /app/listener github.com/mbychkowski/space-agon/listener
+RUN CGO_ENABLED=0 go build -installsuffix cgo -o /app/listener github.com/mbychkowski/space-agon/listener/pb
 
 FROM gcr.io/distroless/static:nonroot
 COPY --from=builder --chown=nonroot "/app" "/app"

@@ -23,8 +23,8 @@ import (
 	"math"
 	"syscall/js"
 
-	"github.com/googleforgames/space-agon/client/webgl"
-	"github.com/googleforgames/space-agon/game"
+	"github.com/mbychkowski/space-agon/space-agon/client/webgl"
+	"github.com/mbychkowski/space-agon/space-agon/game"
 )
 
 type graphics struct {
@@ -86,7 +86,7 @@ func NewGraphics() (*graphics, error) {
 		g.w,
 		`
     uniform vec2 uCenter;
-    uniform vec2 uScale; 
+    uniform vec2 uScale;
 
     attribute vec2 aVertexPosition;
     attribute vec2 aTextureCoord;
@@ -131,7 +131,7 @@ func NewGraphics() (*graphics, error) {
 		g.w,
 		`
     uniform vec2 uCenter;
-    uniform vec2 uScale; 
+    uniform vec2 uScale;
 
     attribute vec2 aVertexPosition;
 

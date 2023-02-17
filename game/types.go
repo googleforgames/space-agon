@@ -17,7 +17,7 @@ package game
 import (
 	"math"
 
-	"github.com/googleforgames/space-agon/game/pb"
+	"github.com/mbychkowski/space-agon/space-agon/game/pb"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
