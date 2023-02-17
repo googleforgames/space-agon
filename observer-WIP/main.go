@@ -27,7 +27,7 @@ import (
 	"net"
 
 	"google.golang.org/grpc"
-	pb "github.com/mbychkowski/space-agon/listener/pb"
+	pb "github.com/mbychkowski/space-agon/observer-WIP/pb"
 )
 
 var (

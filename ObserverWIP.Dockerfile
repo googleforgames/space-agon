@@ -26,7 +26,4 @@ RUN CGO_ENABLED=0 go build -installsuffix cgo -o /app/listener github.com/mbychk
 
 FROM gcr.io/distroless/static:nonroot
 COPY --from=builder --chown=nonroot "/app" "/app"
-
-EXPOSE 7777
-
 ENTRYPOINT ["/app/listener"]

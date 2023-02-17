@@ -33,7 +33,7 @@ import (
 	"golang.org/x/net/websocket"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	pbListener "github.com/mbychkowski/space-agon/listener/pb"
+	pbListener "github.com/mbychkowski/space-agon/observer-WIP/pb"
 )
 
 const (
