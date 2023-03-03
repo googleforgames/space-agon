@@ -26,8 +26,8 @@ REGISTRY=${LOCATION}-docker.pkg.dev/${PROJECT}/${REPOSITORY}
 
 AGONES_NS:=agones-system
 OM_NS:=open-match
-AGONES_VER:=1.27.0
-OM_VER:=1.5.0
+AGONES_VER:=1.29.0
+OM_VER:=1.7.0
 
 #   _____                    _
 #  |_   _|_ _ _ __ __ _  ___| |_ ___
@@ -112,7 +112,7 @@ agones-install-local:
 .PHONY: agones-install
 agones-install:
 	kubectl create namespace $(AGONES_NS)
-	kubectl apply -f https://raw.githubusercontent.com/googleforgames/agones/release-$(AGONES_VER)/install/yaml/install.yaml
+	kubectl apply --server-side -f https://raw.githubusercontent.com/googleforgames/agones/release-$(AGONES_VER)/install/yaml/install.yaml
 
 # uninstall agones and agones resources
 .PHONY: agones-uninstall
@@ -126,7 +126,6 @@ agones-uninstall:
 .PHONY: openmatch-install-local
 openmatch-install-local:
 	helm repo add $(OM_NS) https://open-match.dev/chart/stable
-	kubectl create ns $(OM_NS)
 	helm install $(OM_NS) --create-namespace --namespace $(OM_NS) open-match/open-match --version $(OM_VER) \
 	--set open-match-customize.enabled=true \
 	--set open-match-customize.evaluator.enabled=true \
@@ -150,23 +149,32 @@ openmatch-install-local:
 # install open-match
 .PHONY: openmatch-install
 openmatch-install:
-	kubectl create namespace $(OM_NS)
-	kubectl apply -f https://open-match.dev/install/v$(OM_VER)/yaml/01-open-match-core.yaml \
-		-f https://open-match.dev/install/v$(OM_VER)/yaml/06-open-match-override-configmap.yaml \
-		-f https://open-match.dev/install/v$(OM_VER)/yaml/07-open-match-default-evaluator.yaml \
-		--namespace $(OM_NS)
+	helm repo add ${OM_NS} https://open-match.dev/chart/stable
+	helm install ${OM_NS} --create-namespace --namespace ${OM_NS} open-match/open-match --version ${OM_VER} \
+	--set open-match-customize.enabled=true \
+	--set open-match-customize.evaluator.enabled=true \
+	--set open-match-customize.evaluator.replicas=1 \
+	--set open-match-override.enabled=true \
+	--set open-match-core.swaggerui.enabled=false \
+	--set redis.sentinel.enabled=false \
+	--set redis.master.resources.requests.cpu=0.1 \
+	--set redis.master.persistence.enabled=false \
+	--set redis.replica.replicaCount=0 \
+	--set redis.metrics.enabled=false
 
 # uninstall open-match in local-cluster
 .PHONY: openmatch-uninstall-local
 openmatch-uninstall-local:
 	helm uninstall -n $(OM_NS) $(OM_NS)
 	kubectl delete namespace $(OM_NS)
+	helm repo remove ${OM_NS}
 
 # uninstall open-match
 .PHONY: openmatch-uninstall
 openmatch-uninstall:
-	kubectl delete psp,clusterrole,clusterrolebinding --selector=release=$(OM_NS)
-	kubectl delete namespace $(OM_NS)
+	helm uninstall -n ${OM_NS} ${OM_NS}
+	kubectl delete namespace ${OM_NS}
+	helm repo remove ${OM_NS}
 
 .PHONY: skaffold-setup
 skaffold-setup:
