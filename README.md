@@ -5,6 +5,8 @@ The original work is [Laremere/space-agon](https://github.com/Laremere/space-ago
 Space Agon is a integrated demo of [Agones](https://agones.dev/) and
 [Open Match](https://open-match.dev/).
 
+<img src="./site/assets/space-agon.png" alt="Space Agon Game" width="250px" height="250px" />
+
 ## Before Trying.
 
 **Be aware of billing charges for running the cluster.**
@@ -128,8 +130,9 @@ When you run space-agone in minikube, you should followings in another terminal:
 $ minikube tunnel
 ```
 
-Open `http://<external ip>/` in your favorite web browser.  You can use "find
-match" to start searching for a match.
+Open `http://<external ip>/` in your favorite web browser.  You can use "Find Game" to start searching for a match.
+
+<img src="./site/assets/title.png" alt="Space Agon Title" width="250px" height="250px" />
 
 Repeat in a second web browser window to create a second player, the players
 will be connected and can play each other.
