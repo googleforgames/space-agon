@@ -70,6 +70,9 @@ help:
 	@echo "Install Space Agon"
 	@echo "    make install"
 	@echo ""
+	@echo "Uninstall Agones in local-cluster"
+	@echo "    make agones-uninstall-local"
+	@echo ""
 	@echo "Uninstall Agones"
 	@echo "    make agones-uninstall"
 	@echo ""
@@ -124,8 +127,8 @@ agones-install-local:
 	helm install $(AGONES_NS) --namespace $(AGONES_NS) \
 		--create-namespace $(AGONES_NS)/agones \
 		--version $(AGONES_VER) \
-		--set agones.ping.replicas=0 \
-		--set agones.allocator.replicas=1
+		--set agones.ping.install=false \
+		--set agones.allocator.replicas="1"
 
 # install agones
 .PHONY: agones-install
@@ -137,6 +140,13 @@ agones-install:
 # uninstall agones and agones resources
 .PHONY: agones-uninstall
 agones-uninstall:
+	kubectl delete fleets --all --all-namespaces
+	kubectl delete gameservers --all --all-namespaces
+	helm uninstall $(AGONES_NS) --namespace $(AGONES_NS)
+	kubectl delete namespace $(AGONES_NS)
+
+# uninstall agones and agones resources in local-cluster
+agones-uninstall-local:
 	kubectl delete fleets --all --all-namespaces
 	kubectl delete gameservers --all --all-namespaces
 	helm uninstall $(AGONES_NS) --namespace $(AGONES_NS)
