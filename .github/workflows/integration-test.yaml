@@ -41,12 +41,14 @@ jobs:
           echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list &&
           sudo apt-get update &&
           sudo apt-get install helm gettext-base -y
-      - name: Add Helm Repositories
-        run: make helm-repo-add
       - name: Install Agones in minikube
-        run: make agones-install-local
+        run: |
+          make helm-repo-add
+          make agones-install-local
       - name: Install Open Match in minikube
-        run: make openmatch-install-local
+        run: |
+          make helm-repo-add
+          make openmatch-install-local
       - name: Build space-agone for github-actions
         run: make build-local
       - name: Install space-agone in minikube
