@@ -137,19 +137,15 @@ agones-install:
 		--create-namespace $(AGONES_NS)/agones \
 		--version ${AGONES_VER}
 
-# uninstall agones and agones resources
-.PHONY: agones-uninstall
-agones-uninstall:
-	kubectl delete fleets --all --all-namespaces
-	kubectl delete gameservers --all --all-namespaces
-	helm uninstall $(AGONES_NS) --namespace $(AGONES_NS)
-	kubectl delete namespace $(AGONES_NS)
-
 # uninstall agones and agones resources in local-cluster
 .PHONY: agones-uninstall-local
 agones-uninstall-local:
-	kubectl delete fleets --all --all-namespaces
-	kubectl delete gameservers --all --all-namespaces
+	helm uninstall $(AGONES_NS) --namespace $(AGONES_NS)
+	kubectl delete namespace $(AGONES_NS)
+
+# uninstall agones and agones resources
+.PHONY: agones-uninstall
+agones-uninstall:
 	helm uninstall $(AGONES_NS) --namespace $(AGONES_NS)
 	kubectl delete namespace $(AGONES_NS)
 
