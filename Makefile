@@ -146,6 +146,7 @@ agones-uninstall:
 	kubectl delete namespace $(AGONES_NS)
 
 # uninstall agones and agones resources in local-cluster
+.PHONY: agones-uninstall-local
 agones-uninstall-local:
 	kubectl delete fleets --all --all-namespaces
 	kubectl delete gameservers --all --all-namespaces
