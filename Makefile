@@ -49,6 +49,12 @@ help:
 	@echo "Create GKE Cluster"
 	@echo "    make gcloud-test-cluster"
 	@echo ""
+	@echo "Add Helm Repositories"
+	@echo "    make helm-repo-add"
+	@echo ""
+	@echo "Remove Helm Repositories"
+	@echo "    make helm-repo-remove"
+	@echo ""
 	@echo "Install Agones in local-cluster"
 	@echo "    make agones-install-local"
 	@echo ""
@@ -101,32 +107,47 @@ gcloud-test-cluster: NETWORK ?= default
 gcloud-test-cluster:
 	./scripts/create-cluster.sh ${GCP_CLUSTER_NODEPOOL_INITIALNODECOUNT} ${GCP_CLUSTER_NODEPOOL_MACHINETYPE} ${LOCATION} ${NETWORK}
 
+.PHONY: helm-repo-add
+helm-repo-add: 
+	helm repo add $(AGONES_NS) https://agones.dev/chart/stable
+	helm repo add $(OM_NS) https://open-match.dev/chart/stable
+	helm repo update
+
+.PHONY: helm-repo-remove
+helm-repo-remove: 
+	helm repo remove $(AGONES_NS)
+	helm repo remove $(OM_NS) 
+
 # install agones in local-cluster
 .PHONY: agones-install-local
 agones-install-local:
-	make agones-install
-	kubectl scale deploy agones-allocator --replicas 1 -n $(AGONES_NS)
-	kubectl scale deploy agones-ping --replicas 0 -n $(AGONES_NS)
+	helm install $(AGONES_NS) --namespace $(AGONES_NS) \
+		--create-namespace $(AGONES_NS)/agones \
+		--version $(AGONES_VER) \
+		--set agones.ping.replicas=0 \
+		--set agones.allocator.replicas=1
 
 # install agones
 .PHONY: agones-install
 agones-install:
-	kubectl create namespace $(AGONES_NS)
-	kubectl apply --server-side -f https://raw.githubusercontent.com/googleforgames/agones/release-$(AGONES_VER)/install/yaml/install.yaml
+	helm install ${AGONES_NS} --namespace ${AGONES_NS} \
+		--create-namespace $(AGONES_NS)/agones \
+		--version ${AGONES_VER}
 
 # uninstall agones and agones resources
 .PHONY: agones-uninstall
 agones-uninstall:
 	kubectl delete fleets --all --all-namespaces
 	kubectl delete gameservers --all --all-namespaces
-	kubectl delete -f https://raw.githubusercontent.com/googleforgames/agones/release-$(AGONES_VER)/install/yaml/install.yaml
+	helm uninstall $(AGONES_NS) --namespace $(AGONES_NS)
 	kubectl delete namespace $(AGONES_NS)
 
 # install open-match in local-cluster
 .PHONY: openmatch-install-local
 openmatch-install-local:
-	helm repo add $(OM_NS) https://open-match.dev/chart/stable
-	helm install $(OM_NS) --create-namespace --namespace $(OM_NS) open-match/open-match --version $(OM_VER) \
+	helm install $(OM_NS) \
+	--create-namespace --namespace $(OM_NS) $(OM_NS)/open-match \
+	--version $(OM_VER) \
 	--set open-match-customize.enabled=true \
 	--set open-match-customize.evaluator.enabled=true \
 	--set open-match-customize.evaluator.replicas=1 \
@@ -149,8 +170,7 @@ openmatch-install-local:
 # install open-match
 .PHONY: openmatch-install
 openmatch-install:
-	helm repo add ${OM_NS} https://open-match.dev/chart/stable
-	helm install ${OM_NS} --create-namespace --namespace ${OM_NS} open-match/open-match --version ${OM_VER} \
+	helm install ${OM_NS} --create-namespace --namespace ${OM_NS} $(OM_NS)/open-match --version ${OM_VER} \
 	--set open-match-customize.enabled=true \
 	--set open-match-customize.evaluator.enabled=true \
 	--set open-match-customize.evaluator.replicas=1 \
@@ -167,14 +187,12 @@ openmatch-install:
 openmatch-uninstall-local:
 	helm uninstall -n $(OM_NS) $(OM_NS)
 	kubectl delete namespace $(OM_NS)
-	helm repo remove ${OM_NS}
 
 # uninstall open-match
 .PHONY: openmatch-uninstall
 openmatch-uninstall:
 	helm uninstall -n ${OM_NS} ${OM_NS}
 	kubectl delete namespace ${OM_NS}
-	helm repo remove ${OM_NS}
 
 .PHONY: skaffold-setup
 skaffold-setup:
@@ -194,4 +212,3 @@ uninstall:
 .PHONY: integration-test
 integration-test:
 	go test -count=1 -v -timeout 60s test/integration_test.go
-
