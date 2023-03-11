@@ -7,12 +7,12 @@ Space Agon is a integrated demo of [Agones](https://agones.dev/) and
 
 <img src="./site/assets/space-agon.png" alt="Space Agon Game" width="250px" height="250px" />
 
-## Before Trying.
+## Before Trying
 
 **Be aware of billing charges for running the cluster.**
 
-Space Agon is intended to run on [Google Kubernetes Engine (GKE)](https://cloud.google.com/kubernetes-engine) and has been tested with the configured cluster size.   
-Leaving the cluster running may incur your cost. You need to be responsible for the cost.  (See pricings of [GKE](https://cloud.google.com/kubernetes-engine/pricing), [Cloud Build](https://cloud.google.com/build/pricing) and [Artifact Registry](https://cloud.google.com/artifact-registry/pricing).) 
+Space Agon is intended to run on [Google Kubernetes Engine (GKE)](https://cloud.google.com/kubernetes-engine) and has been tested with the configured cluster size.
+Leaving the cluster running may incur your cost. You need to be responsible for the cost.  (See pricings of [GKE](https://cloud.google.com/kubernetes-engine/pricing), [Cloud Build](https://cloud.google.com/build/pricing) and [Artifact Registry](https://cloud.google.com/artifact-registry/pricing).)
 
 ## Prerequisites
 
@@ -37,44 +37,47 @@ _[Google Cloud Shell](https://cloud.google.com/shell) has all tools you need._
 
 ```bash
 # Set Your Project ID before you run
-$ export PROJECT_ID=<your project ID>
+export PROJECT_ID=<your project ID>
 
-$ export LOCATION=us-central1
-$ export ZONE=$LOCATION-a
+export LOCATION=us-central1
+export ZONE=$LOCATION-a
 
-$ export REPOSITORY=space-agon
+export REPOSITORY=space-agon
 
-$ gcloud services enable artifactregistry.googleapis.com \
+gcloud services enable artifactregistry.googleapis.com \
                         container.googleapis.com
 
-$ gcloud config set project $PROJECT_ID
+gcloud config set project $PROJECT_ID
 
-$ gcloud config set compute/zone $ZONE
+gcloud config set compute/zone $ZONE
 
 # Create cluster (using default network)
 # Set NETWORK=<your network>, if you want to select the network
-$ make gcloud-test-cluster
+make gcloud-test-cluster
 
 # Create Artifact Registry Repository
-$ gcloud artifacts repositories create $REPOSITORY \
+gcloud artifacts repositories create $REPOSITORY \
     --repository-format=docker \
     --location=$LOCATION 
 
 # Assign roles to default service account
-$ gcloud projects add-iam-policy-binding $PROJECT_ID \
+gcloud projects add-iam-policy-binding $PROJECT_ID \
     --member serviceAccount:$(gcloud iam service-accounts list \
     --filter="displayName:Compute Engine default service account" \
     --format="value(email)") \
     --role roles/artifactregistry.reader
 
 # Login Artifact Registry
-$ gcloud auth configure-docker $LOCATION-docker.pkg.dev
+gcloud auth configure-docker $LOCATION-docker.pkg.dev
+
+# Add Helm Repositories 
+make helm-repo-add
 
 # Install Agones
-$ make agones-install
+make agones-install
 
 # Install Open Match
-$ make openmatch-install
+make openmatch-install
 ```
 
 ### Deploy them to local k8s cluster by minikube
@@ -82,19 +85,21 @@ $ make openmatch-install
 ```bash
 # Start minikube
 # ref: https://minikube.sigs.k8s.io/docs/commands/start/
-$ minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.23.14 --driv
-er=hyperkit
+minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.23.14 --driver=hyperkit
+
+# Add Helm Repositories 
+make helm-repo-add
 
 # Install minimized Agones
-$ make agones-install-local
+make agones-install-local
 
 # Install minimized Open Match
-$ make openmatch-install-local
+make openmatch-install-local
 ```
 
 ## Deploy applications
 
-### Deploy them to Google Cloud
+### Deploy to Google Cloud
 
 Make sure you installed docker to build and push images
 
@@ -106,7 +111,7 @@ make build
 make install
 ```
 
-### Deploy them to local k8s cluster by minikube
+### Deploy to local k8s cluster by minikube
 
 ```bash
 # Build space-agon images for minikube cluster
@@ -121,13 +126,13 @@ make install
 Get External IP from:
 
 ```bash
-$ kubectl get service frontend
+kubectl get service frontend
 ```
 
 When you run space-agone in minikube, you should followings in another terminal:
 
 ```bash
-$ minikube tunnel
+minikube tunnel
 ```
 
 Open `http://<external ip>/` in your favorite web browser.  You can use "Find Game" to start searching for a match.
@@ -142,7 +147,7 @@ will be connected and can play each other.
 View Running Game Servers:
 
 ```bash
-$ kubectl get gameserver
+kubectl get gameserver
 ```
 
 Then use the connect to server option with the value `<ip>:<port>`.
@@ -152,43 +157,54 @@ Then use the connect to server option with the value `<ip>:<port>`.
 ### Delete the deployment
 
 ```bash
-$ make uninstall
+# Uninstall Space Agon Applications
+make uninstall
 ```
 
 ### Uninstall Agones
 
 ```bash
-# Deployed space-agone to Google Cloud
-$ make agones-uninstall
+# For GKE
+make agones-uninstall
 
-# Deployed space-agone to minikube
-$ make agones-uninstall-local
+# For minikube
+make agones-uninstall-local
 ```
 
 ### Uninstall Open-Match
 
 ```bash
-# Deployed space-agone to Google Cloud
+# For GKE
 make openmatch-uninstall
 
-# Deployed space-agone to minikube
-$ make openmatch-uninstall-local
+# For minikube
+make openmatch-uninstall-local
+```
+
+### Remove Helm Repositories (Optional)
+
+If you do not need Helm repositories of Agones and Open Match.
+You can remove repositories by the command.
+
+```bash
+make helm-repo-remove
 ```
 
 ### Delete your Google Cloud Project
 
 ```bash
-$ gcloud projects delete $PROJECT_ID
+# Delete project
+gcloud projects delete $PROJECT_ID
 ```
 
 ## Develop Applications
 
-In case testing your original match making logics, [`skaffold`](https://skaffold.dev/) can help you debug your applications. 
+In case testing your original match making logics, [`skaffold`](https://skaffold.dev/) can help you debug your applications.
 
 ### Setup
 
 1. [Create a space-agon k8s cluster.](#create-the-resources-and-install-gaming-oss)
-1. [Install `skaffold`](https://skaffold.dev/docs/install/) if you haven't. 
+1. [Install `skaffold`](https://skaffold.dev/docs/install/) if you haven't
 1. Run `make skaffold-setup` on the project root to make a `skaffold.yaml`
 
 Now you're ready to run `skaffold` commands.
@@ -201,13 +217,14 @@ You can check your own logic and debug.
 
 ```bash
 # Build space-agon images with Cloud Build
-$ skaffold build 
+skaffold build 
 
 # Run Applicaitons in the space-agon cluster for debugging.
-$ skaffold dev
+skaffold dev
 ```
 
-Modifying applications during `skaffold dev` triggers Build and Deploy automatically. For more commands and details, visit [`skaffold`](https://skaffold.dev/). 
+Modifying applications during `skaffold dev` triggers Build and Deploy automatically.
+For more commands and details, visit [`skaffold`](https://skaffold.dev/).
 
 ### Test the Cluster
 
@@ -215,18 +232,18 @@ When you would like to test the application, follow the steps below.
 
 #### Google Cloud
 
-1. [Install `skaffold`](https://skaffold.dev/docs/install/) if you haven't. 
-1. [Create a space-agon k8s cluster.](#create-the-resources-and-install-gaming-oss)
-1. Run `make skaffold-setup` on the project root to make a `skaffold.yaml`
-1. Run below commands for integration test. 
+1. [Install `skaffold`](https://skaffold.dev/docs/install/) if you haven't.
+1. [Create a space-agon k8s cluster.](#create-the-resources-and-install-gaming-oss).
+1. Run `make skaffold-setup` on the project root to make a `skaffold.yaml`.
+1. Run below commands for integration test.
 
 ```bash
 # Run you space-agon applications
-$ skaffold dev
+skaffold dev
 
 # Open another terminal and
 # Run Test command
-$ make integration-test
+make integration-test
 ```
 
 #### minikube
@@ -235,16 +252,16 @@ $ make integration-test
 
 ```bash
 # Connect to service in minikube
-$ minikube tunnel
+minikube tunnel
 
 # Open another terminal and
 # Run Test command
-$ make integration-test
+make integration-test
 ```
 
 ## LICENSE
 
-This is [Apache 2.0 License](./LICENSE). 
+This is [Apache 2.0 License](./LICENSE).
 
 ## Note
 
