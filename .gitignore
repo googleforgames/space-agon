@@ -1,4 +1,4 @@
-deploy.yaml
+.vscode
 skaffold.yaml
-nohup.out
 values.yaml
+nohup.out
