@@ -1,0 +1,56 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+frontend:
+  name: frontend
+  replicas: ${REPLICAS_FRONTEND}
+  containerPort: 8080
+  servicePort: 80
+  serviceType: LoadBalancer 
+  image: ${REGISTRY}/space-agon-frontend:${TAG}
+
+mmf:
+  name: mmf
+  replicas: ${REPLICAS_MMF}
+  containerPort: 50502
+  serviceType: ClusterIP
+  servicePort: 50502
+  image: ${REGISTRY}/space-agon-mmf:${TAG}
+
+director:
+  name: director
+  replicas: 1
+  serviceAccountName: fleet-allocator
+  image: ${REGISTRY}/space-agon-director:${TAG}
+
+dedicated:
+  name: dedicated
+  replicas: ${REPLICAS_DEDICATED}
+  containerPort: 2156 
+  protocol: TCP
+  image: ${REGISTRY}/space-agon-dedicated:${TAG}
+  portPolicy: Dynamic
+  resources:
+    limits:
+      cpu: ${LIMITS_CPU}
+      memory: ${LIMITS_MEMORY}
+    requests:
+      cpu: ${REQUEST_CPU}
+      memory: ${REQUEST_MEMORY}
+  autoscaler:
+    type: Buffer
+    buffer:
+      bufferSize: ${BUFFER_SIZE}
+      minReplicas: ${MIN_REPLICAS} 
+      maxReplicas: ${MAX_REPLICAS}

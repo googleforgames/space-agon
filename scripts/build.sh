@@ -14,14 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-TAG=$(git rev-parse --short HEAD)
+export TAG=$(git rev-parse --short HEAD)
 
 if [ $1 = "test" ] ;then
-    ENV="test"
-    REGISTRY=local
+    export ENV="test"
+    export REGISTRY=local
 else
-    ENV="develop"
-    REGISTRY=$1
+    export ENV="develop"
+    export REGISTRY=$1
 fi
 
 # Use docker engine in minikube
@@ -45,11 +45,35 @@ fi
 
 # Replace image repository & tags
 if [ ${ENV} = "test" ] ;then
-    REGISTRY=${REGISTRY} TAG=${TAG} REPLICAS_FRONTEND=1 REPLICAS_DEDICATED=1 REQUEST_MEMORY=100Mi REQUEST_CPU=100m \
-    LIMITS_MEMORY=100Mi LIMITS_CPU=100m BUFFER_SIZE=1 MIN_REPLICAS=0 MAX_REPLICAS=1 REPLICAS_MMF=1 \
+    REGISTRY=${REGISTRY} 
+    TAG=${TAG} 
+    export REPLICAS_DEDICATED=1 
+    export REPLICAS_FRONTEND=1 
+    export REPLICAS_MMF=1 
+    export REQUEST_MEMORY=100Mi 
+    export REQUEST_CPU=100m
+    export LIMITS_MEMORY=100Mi 
+    export LIMITS_CPU=100m 
+    export BUFFER_SIZE=1 
+    export MIN_REPLICAS=0 
+    export MAX_REPLICAS=1 
 	envsubst < deploy_template.yaml > deploy.yaml
+	envsubst < templates/helm_template_values.yaml > install/helm/space-agon/values.yaml
+	envsubst < templates/skaffold_template.local.yaml > skaffold.yaml
 else
-    REGISTRY=${REGISTRY} TAG=${TAG} REPLICAS_FRONTEND=2 REPLICAS_DEDICATED=2 REQUEST_MEMORY=200Mi REQUEST_CPU=500m \
-    LIMITS_MEMORY=200Mi LIMITS_CPU=500m BUFFER_SIZE=2 MIN_REPLICAS=0 MAX_REPLICAS=50 REPLICAS_MMF=2 \
+    REGISTRY=${REGISTRY} 
+    TAG=${TAG} 
+    export REPLICAS_DEDICATED=2 
+    export REPLICAS_FRONTEND=2 
+    export REPLICAS_MMF=2 
+    export REQUEST_MEMORY=200Mi 
+    export REQUEST_CPU=500m 
+    export LIMITS_MEMORY=200Mi 
+    export LIMITS_CPU=500m 
+    export BUFFER_SIZE=2 
+    export MIN_REPLICAS=0 
+    export MAX_REPLICAS=50 
 	envsubst < deploy_template.yaml > deploy.yaml
+	envsubst < templates/helm_template_values.yaml > install/helm/space-agon/values.yaml
+	envsubst < templates/skaffold_template.yaml > skaffold.yaml
 fi

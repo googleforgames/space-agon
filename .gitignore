@@ -1,3 +1,4 @@
 deploy.yaml
 skaffold.yaml
 nohup.out
+values.yaml

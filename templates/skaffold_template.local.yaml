@@ -1,4 +1,4 @@
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,48 +12,47 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: skaffold/v2beta29
+apiVersion: skaffold/v4beta2
 kind: Config
 metadata:
   name: space-agon
 build:
   tagPolicy:
     gitCommit:
-      variant: CommitSha
-      prefix: ska-dev-
+      variant: Tags
   artifacts:
-  - image: REGISTRY/space-agon-dedicated
+  - image: ${REGISTRY}/space-agon-dedicated
     context: ./
     docker:
       dockerfile: Dedicated.Dockerfile
-  - image: REGISTRY/space-agon-director
+  - image: ${REGISTRY}/space-agon-director
     context: ./
     docker:
       dockerfile: Director.Dockerfile
-  - image: REGISTRY/space-agon-frontend
+  - image: ${REGISTRY}/space-agon-frontend
     context: ./
     docker:
       dockerfile: Frontend.Dockerfile
-  - image: REGISTRY/space-agon-mmf
+  - image: ${REGISTRY}/space-agon-mmf
     context: ./
     docker:
       dockerfile: Mmf.Dockerfile
-  googleCloudBuild:
-    projectId: PROJECTID
-    timeout: "600s"
-    concurrency: 0
-    region: "us-central1"
+  local:
+    concurrency: 1
 test:
   - context: .
-    image: REGISTRY/space-agon-dedicated
+    image: ${REGISTRY}/space-agon-dedicated
   - context: .
-    image: REGISTRY/space-agon-director
+    image: ${REGISTRY}/space-agon-director
   - context: .
-    image: REGISTRY/space-agon-frontend
+    image: ${REGISTRY}/space-agon-frontend
   - context: .
-    image: REGISTRY/space-agon-mmf
+    image: ${REGISTRY}/space-agon-mmf
 
 deploy:
-  kubectl:
-    manifests:
-    - deploy.yaml
+  helm:
+    releases:
+      - name: space-agon
+        namespace: default
+        chartPath: install/helm/space-agon
+        recreatePods: true
