@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
         - name: {{ .Values.mmf.name }}
-          image: {{ .Values.mmf.image }}
+          image: "{{ .Values.mmf.image.repository }}:{{ .Values.mmf.image.tag }}"
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: {{ .Values.mmf.containerPort }}

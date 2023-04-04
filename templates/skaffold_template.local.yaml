@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This file is for skaffold.yaml at the project root .
+# Use `make build` or `make build-local` to generate the file.
+
 apiVersion: skaffold/v4beta2
 kind: Config
 metadata:
@@ -56,3 +59,12 @@ deploy:
         namespace: default
         chartPath: install/helm/space-agon
         recreatePods: true
+        setValueTemplates:
+          frontend.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_space_agon_frontend}}"
+          frontend.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_space_agon_frontend}}"
+          director.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_space_agon_director}}"
+          director.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_space_agon_director}}"
+          mmf.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_space_agon_mmf}}"
+          mmf.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_space_agon_mmf}}"
+          dedicated.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_space_agon_dedicated}}"
+          dedicated.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_space_agon_dedicated}}"

@@ -22,6 +22,8 @@ if [ $1 = "test" ] ;then
 else
     export ENV="develop"
     export REGISTRY=$1
+    export PROJECT=$2
+    export LOCATION=$3
 fi
 
 # Use docker engine in minikube
@@ -43,10 +45,12 @@ if [ ${ENV} = "develop" ];then
     docker push ${REGISTRY}/space-agon-mmf:${TAG}
 fi
 
+# Sanitized characters - / . : for skaffold
+# https://skaffold.dev/docs/deployers/helm/#sanitizing-the-artifact-name-from-invalid-go-template-characters
+export SANITIZED_REGISTRY=$(echo ${REGISTRY} | sed -e "s/[-/.:]/_/g")
+
 # Replace image repository & tags
 if [ ${ENV} = "test" ] ;then
-    REGISTRY=${REGISTRY} 
-    TAG=${TAG} 
     export REPLICAS_DEDICATED=1 
     export REPLICAS_FRONTEND=1 
     export REPLICAS_MMF=1 
@@ -57,12 +61,9 @@ if [ ${ENV} = "test" ] ;then
     export BUFFER_SIZE=1 
     export MIN_REPLICAS=0 
     export MAX_REPLICAS=1 
-	envsubst < deploy_template.yaml > deploy.yaml
 	envsubst < templates/helm_template_values.yaml > install/helm/space-agon/values.yaml
 	envsubst < templates/skaffold_template.local.yaml > skaffold.yaml
 else
-    REGISTRY=${REGISTRY} 
-    TAG=${TAG} 
     export REPLICAS_DEDICATED=2 
     export REPLICAS_FRONTEND=2 
     export REPLICAS_MMF=2 
@@ -73,7 +74,6 @@ else
     export BUFFER_SIZE=2 
     export MIN_REPLICAS=0 
     export MAX_REPLICAS=50 
-	envsubst < deploy_template.yaml > deploy.yaml
 	envsubst < templates/helm_template_values.yaml > install/helm/space-agon/values.yaml
 	envsubst < templates/skaffold_template.yaml > skaffold.yaml
 fi

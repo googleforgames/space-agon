@@ -30,7 +30,7 @@ spec:
         spec:
           containers:
             - name: {{ .Values.dedicated.name }}
-              image: {{ .Values.dedicated.image }}
+              image: "{{ .Values.dedicated.image.repository }}:{{ .Values.dedicated.image.tag }}"
               imagePullPolicy: IfNotPresent
               resources:
                 requests:

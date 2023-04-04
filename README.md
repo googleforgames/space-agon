@@ -85,7 +85,7 @@ make openmatch-install
 ```bash
 # Start minikube
 # ref: https://minikube.sigs.k8s.io/docs/commands/start/
-minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.23.14 --driver=hyperkit
+minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.24.1 --driver=docker
 
 # Add Helm Repositories 
 make helm-repo-add
@@ -104,20 +104,20 @@ make openmatch-install-local
 Make sure you installed docker to build and push images
 
 ```bash
-# Build space-agon images
+# Build Space Agon images
 make build
 
-# Apply space-agon images
+# Deploy Space Agon
 make install
 ```
 
 ### Deploy to local k8s cluster by minikube
 
 ```bash
-# Build space-agon images for minikube cluster
+# Build Space Agon images for minikube cluster
 make build-local
 
-# Apply space-agon images for minikube cluster
+# Deploy Space Agon for minikube cluster
 make install
 ```
 
@@ -129,7 +129,7 @@ Get External IP from:
 kubectl get service frontend
 ```
 
-When you run space-agone in minikube, you should followings in another terminal:
+When you run Space Agon in minikube, you should followings in another terminal:
 
 ```bash
 minikube tunnel
@@ -151,6 +151,26 @@ kubectl get gameserver
 ```
 
 Then use the connect to server option with the value `<ip>:<port>`.
+
+## Changing the parameters
+
+If you'd like to modify your parameters of your deployments, you can change in [`install/helm/space-agon/values.yaml`](./install/helm/space-agon/values.yaml).
+
+Space Agon uses [Helm](https://helm.sh/) to install the applications.
+
+```yaml
+# values.yaml
+frontend:
+  name: frontend
+  replicas: 2
+  containerPort: 8080
+  servicePort: 80
+  serviceType: LoadBalancer 
+  image: 
+    repository: YOUR_REPO_NAME_HERE
+    tag: YOUR_TAG_HERE
+...
+```
 
 ## Clean Up
 
@@ -184,7 +204,7 @@ make openmatch-uninstall-local
 ### Remove Helm Repositories (Optional)
 
 If you do not need Helm repositories of Agones and Open Match.
-You can remove repositories by the command.
+You can remove them by the command.
 
 ```bash
 make helm-repo-remove
@@ -203,11 +223,11 @@ In case testing your original match making logics, [`skaffold`](https://skaffold
 
 ### Setup
 
-1. [Create a space-agon k8s cluster.](#create-the-resources-and-install-gaming-oss)
+1. [Create a Space Agon cluster.](#create-the-resources-and-install-gaming-oss)
 1. [Install `skaffold`](https://skaffold.dev/docs/install/) if you haven't
-1. Run `make skaffold-setup` on the project root to make a `skaffold.yaml`
+1. Run `make cloudbuild-setup` on the project to use Cloud Build
 
-Now you're ready to run `skaffold` commands.
+After running `make build` or `make build-local`, you're ready to run `skaffold` commands.
 
 ### Debug
 
@@ -216,30 +236,32 @@ Once you create a `skaffold.yaml`, you can run `skaffold` commands.
 You can check your own logic and debug.
 
 ```bash
-# Build space-agon images with Cloud Build
+# Build Space Agon images with Cloud Build
 skaffold build 
 
-# Run Applicaitons in the space-agon cluster for debugging.
+# Run Applicaitons in the Space Agon cluster for debugging.
 skaffold dev
+
+# Check your deployed yaml file
+skaffold render
 ```
 
-Modifying applications during `skaffold dev` triggers Build and Deploy automatically.
+Modifying applications or helm values during `skaffold dev` triggers Build and Deploy again automatically.  
 For more commands and details, visit [`skaffold`](https://skaffold.dev/).
 
-### Test the Cluster
+### Test your Cluster
 
 When you would like to test the application, follow the steps below.
 
 #### Google Cloud
 
-1. [Install `skaffold`](https://skaffold.dev/docs/install/) if you haven't.
-1. [Create a space-agon k8s cluster.](#create-the-resources-and-install-gaming-oss).
-1. Run `make skaffold-setup` on the project root to make a `skaffold.yaml`.
+1. [Create a Space Agon k8s cluster.](#create-the-resources-and-install-gaming-oss).
 1. Run below commands for integration test.
 
 ```bash
-# Run you space-agon applications
-skaffold dev
+# Run you Space Agon applications
+# Optiionally, you can use `skaffold dev`
+make install
 
 # Open another terminal and
 # Run Test command
@@ -248,7 +270,8 @@ make integration-test
 
 #### minikube
 
-1. [Create a space-agon k8s cluster via minikube.](#create-the-resources-and-install-gaming-oss)
+1. [Create a Space Agon k8s cluster via minikube.](#create-the-resources-and-install-gaming-oss)
+1. Run below commands for integration test.
 
 ```bash
 # Connect to service in minikube

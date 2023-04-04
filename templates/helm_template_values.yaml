@@ -12,13 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This file is for values.yaml in install/helm/space-agon.
+# Use `make build` or `make build-local` to generate the file.
+
 frontend:
   name: frontend
   replicas: ${REPLICAS_FRONTEND}
   containerPort: 8080
   servicePort: 80
   serviceType: LoadBalancer 
-  image: ${REGISTRY}/space-agon-frontend:${TAG}
+  image: 
+    repository: ${REGISTRY}/space-agon-frontend
+    tag: ${TAG}
 
 mmf:
   name: mmf
@@ -26,20 +31,26 @@ mmf:
   containerPort: 50502
   serviceType: ClusterIP
   servicePort: 50502
-  image: ${REGISTRY}/space-agon-mmf:${TAG}
+  image: 
+    repository: ${REGISTRY}/space-agon-mmf
+    tag: ${TAG}
 
 director:
   name: director
   replicas: 1
   serviceAccountName: fleet-allocator
-  image: ${REGISTRY}/space-agon-director:${TAG}
+  image: 
+    repository: ${REGISTRY}/space-agon-director
+    tag: ${TAG}
 
 dedicated:
   name: dedicated
   replicas: ${REPLICAS_DEDICATED}
   containerPort: 2156 
   protocol: TCP
-  image: ${REGISTRY}/space-agon-dedicated:${TAG}
+  image: 
+    repository: ${REGISTRY}/space-agon-dedicated
+    tag: ${TAG}
   portPolicy: Dynamic
   resources:
     limits:

@@ -30,7 +30,7 @@ spec:
       serviceAccount: {{ .Values.director.serviceAccountName }}
       containers:
         - name: {{ .Values.director.name }}
-          image: {{ .Values.director.image }}
+          image: "{{ .Values.director.image.repository }}:{{ .Values.director.image.tag }}"
           imagePullPolicy: IfNotPresent
 ---
 apiVersion: v1

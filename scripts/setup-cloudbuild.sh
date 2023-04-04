@@ -29,7 +29,4 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
     --format="value(projectNumber)")@cloudbuild.gserviceaccount.com \
     --role="roles/storage.objectViewer"
 
-ESC_REGISTRY=$(echo ${REGISTRY} | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g') &&
-sed -E 's/image: (.*)\/([^\/]*)/image: '${ESC_REGISTRY}'\/\2/;s/PROJECTID/'${PROJECT_ID}'/g' skaffold_template.yaml > skaffold.yaml
-
-echo "You are ready to run skaffold commands"
+echo "You are ready to use Cloud Build"

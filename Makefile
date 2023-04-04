@@ -82,11 +82,14 @@ help:
 	@echo "Uninstall Open Match"
 	@echo "    make openmatch-uninstall"
 	@echo ""
+	@echo "Upgrade Space Agon parameters"
+	@echo "    make upgrade"
+	@echo ""
 	@echo "Uninstall Space Agon"
 	@echo "    make uninstall"
 	@echo ""
-	@echo "Setup a Skaffold file for debugging !!RUN AFTER CREATING YOUR CLUSTER!!"
-	@echo "    make skaffold-setup"
+	@echo "Setup Cloud Build for building your image remotely"
+	@echo "    make cloudbuild-setup"
 	@echo ""
 	@echo "Run integration test"
 	@echo "    make integration-test"
@@ -100,7 +103,7 @@ build-local:
 # build space-agon docker images
 .PHONY: build
 build:
-	./scripts/build.sh ${REGISTRY}
+	./scripts/build.sh ${REGISTRY} ${PROJECT} ${LOCATION}
 
 # create gke cluster
 .PHONY: gcloud-test-cluster
@@ -201,19 +204,24 @@ openmatch-uninstall:
 	helm uninstall -n ${OM_NS} ${OM_NS}
 	kubectl delete namespace ${OM_NS}
 
-.PHONY: skaffold-setup
-skaffold-setup:
-	./scripts/setup-skaffold.sh ${PROJECT} ${REGISTRY}
+.PHONY: cloudbuild-setup
+cloudbuild-setup:
+	./scripts/setup-cloudbuild.sh ${PROJECT} ${REGISTRY}
 
 # install space-agon itself
 .PHONY: install
 install:
-	kubectl apply -f deploy.yaml
+	helm install space-agon -f install/helm/space-agon/values.yaml ./install/helm/space-agon
 
 # uninstall space-agon itself
 .PHONY: uninstall
 uninstall:
-	kubectl delete -f deploy.yaml
+	helm uninstall space-agon 
+
+# upgrade space-agon after changing parameters
+.PHONY: upgrade
+upgrade:
+	helm upgrade space-agon -f install/helm/space-agon/values.yaml ./install/helm/space-agon
 
 # integration test
 .PHONY: integration-test
