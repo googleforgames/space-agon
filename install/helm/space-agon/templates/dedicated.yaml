@@ -15,7 +15,7 @@
 apiVersion: "agones.dev/v1"
 kind: Fleet
 metadata:
-  name: {{ .Values.dedicated.name }}
+  name: {{ template "dedicated.name" .}}
   namespace: {{ .Release.Namespace }}
 spec:
   replicas: {{ .Values.dedicated.replicas }}
@@ -29,9 +29,9 @@ spec:
       template:
         spec:
           containers:
-            - name: {{ .Values.dedicated.name }}
+            - name: {{ template "dedicated.name" . }}
               image: "{{ .Values.dedicated.image.repository }}:{{ .Values.dedicated.image.tag }}"
-              imagePullPolicy: IfNotPresent
+              imagePullPolicy: {{ .Values.dedicated.imagePullPolicy }}
               resources:
                 requests:
                   cpu: {{ .Values.dedicated.resources.requests.cpu }}
@@ -44,10 +44,10 @@ spec:
 apiVersion: "autoscaling.agones.dev/v1"
 kind: FleetAutoscaler
 metadata:
-  name: {{ .Values.dedicated.name }}-autoscaler
+  name: {{ template "dedicated.name" . }}-autoscaler
   namespace: {{ .Release.Namespace }}
 spec:
-  fleetName: {{ .Values.dedicated.name }}
+  fleetName: {{ template "dedicated.name" . }}
   policy:
     type: {{ .Values.dedicated.autoscaler.type }}
     buffer:

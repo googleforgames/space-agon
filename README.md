@@ -204,10 +204,9 @@ make openmatch-uninstall
 make openmatch-uninstall-local
 ```
 
-### Remove Helm Repositories (Optional)
+### (Optional) Remove Helm Repositories
 
-If you do not need Helm repositories of Agones and Open Match.
-You can remove them by the command.
+You can remove Helm repositories by the command, if you do not need.
 
 ```bash
 make helm-repo-remove
@@ -220,30 +219,31 @@ make helm-repo-remove
 gcloud projects delete $PROJECT_ID
 ```
 
-## Develop Applications
+## (Optional) Develop Applications with Skaffold
 
 In case testing your original match making logics, [`skaffold`](https://skaffold.dev/) can help you debug your applications.
 
 ### Setup
 
 1. [Create a Space Agon cluster.](#create-the-resources-and-install-gaming-oss)
-1. [Install `skaffold`](https://skaffold.dev/docs/install/) if you haven't
-1. Run `make cloudbuild-setup` on the project to use Cloud Build
+1. [Install `skaffold`](https://skaffold.dev/docs/install/)
 
 After running `make build` or `make build-local`, you're ready to run `skaffold` commands.
 
-### Debug
+### Develop
 
 Once you create a `skaffold.yaml`, you can run `skaffold` commands.
-
-You can check your own logic and debug.
 
 ```bash
 # Build Space Agon images with Cloud Build
 skaffold build 
 
-# Run Applicaitons in the Space Agon cluster for debugging.
+# Run Applicaitons in the local Space Agon cluster for debugging.
 skaffold dev
+
+# Use cloud profile in case of GKE (Run `make build` first)
+make cloudbuild-setup
+skaffold dev -p cloud
 
 # Check your deployed yaml file
 skaffold render
@@ -252,13 +252,13 @@ skaffold render
 Modifying applications or helm values during `skaffold dev` triggers Build and Deploy again automatically.  
 For more commands and details, visit [`skaffold`](https://skaffold.dev/).
 
-### Test your Cluster
+## Test your Cluster
 
 When you would like to test the application, follow the steps below.
 
-#### Google Cloud
+### Google Cloud
 
-1. [Create a Space Agon k8s cluster.](#create-the-resources-and-install-gaming-oss).
+1. [Create a Space Agon k8s cluster](#create-the-resources-and-install-gaming-oss).
 1. Run below commands for integration test.
 
 ```bash
@@ -271,9 +271,9 @@ make install
 make integration-test
 ```
 
-#### minikube
+### minikube
 
-1. [Create a Space Agon k8s cluster via minikube.](#create-the-resources-and-install-gaming-oss)
+1. [Create a Space Agon k8s cluster on minikube](#create-the-resources-and-install-gaming-oss).
 1. Run below commands for integration test.
 
 ```bash

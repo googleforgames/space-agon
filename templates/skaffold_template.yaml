@@ -40,21 +40,8 @@ build:
     context: ./
     docker:
       dockerfile: Mmf.Dockerfile
-  googleCloudBuild:
-    projectId: ${PROJECT}
-    timeout: "600s"
-    concurrency: 0
-    region: ${LOCATION}
-test:
-  - context: .
-    image: ${REGISTRY}/space-agon-dedicated
-  - context: .
-    image: ${REGISTRY}/space-agon-director
-  - context: .
-    image: ${REGISTRY}/space-agon-frontend
-  - context: .
-    image: ${REGISTRY}/space-agon-mmf
-
+  local:
+    concurrency: 1
 deploy:
   helm:
     releases:
@@ -63,12 +50,19 @@ deploy:
         chartPath: install/helm/space-agon
         recreatePods: true
         setValueTemplates:
-          frontend.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_space_agon_frontend}}"
-          frontend.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_space_agon_frontend}}"
-          director.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_space_agon_director}}"
-          director.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_space_agon_director}}"
-          mmf.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_space_agon_mmf}}"
-          mmf.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_space_agon_mmf}}"
-          dedicated.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_space_agon_dedicated}}"
-          dedicated.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_space_agon_dedicated}}"
-
+          frontend.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_${SANITIZED_PREFIX}_frontend}}"
+          frontend.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_${SANITIZED_PREFIX}_frontend}}"
+          director.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_${SANITIZED_PREFIX}_director}}"
+          director.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_${SANITIZED_PREFIX}_director}}"
+          mmf.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_${SANITIZED_PREFIX}_mmf}}"
+          mmf.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_${SANITIZED_PREFIX}_mmf}}"
+          dedicated.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_${SANITIZED_PREFIX}_dedicated}}"
+          dedicated.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_${SANITIZED_PREFIX}_dedicated}}"
+profiles:
+  - name: cloud
+    build:
+      googleCloudBuild:
+        projectId: ${PROJECT}
+        timeout: "600s"
+        concurrency: 0
+        region: ${LOCATION}

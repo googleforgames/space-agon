@@ -15,22 +15,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.mmf.name }}
+  name:  {{ template "mmf.name" .}}
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
-      run: {{ .Values.mmf.name }}
+      run:  {{ template "mmf.name" .}}
   replicas: {{ .Values.mmf.replicas }}
   template:
     metadata:
       labels:
-        run: {{ .Values.mmf.name }}
+        run:  {{ template "mmf.name" .}}
     spec:
       containers:
-        - name: {{ .Values.mmf.name }}
+        - name:  {{ template "mmf.name" .}}
           image: "{{ .Values.mmf.image.repository }}:{{ .Values.mmf.image.tag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.mmf.imagePullPolicy }}
           ports:
             - containerPort: {{ .Values.mmf.containerPort }}
 
@@ -38,14 +38,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.mmf.name }}
+  name:  {{ template "mmf.name" .}}
   namespace: {{ .Release.Namespace }}
   labels:
-    run: {{ .Values.mmf.name }}
+    run:  {{ template "mmf.name" .}}
 spec:
   type: {{ .Values.mmf.serviceType }}
   ports:
     - port: {{ .Values.mmf.servicePort }}
       protocol: TCP
   selector:
-    run: {{ .Values.mmf.name }}
+    run:  {{ template "mmf.name" .}}

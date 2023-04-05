@@ -15,23 +15,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.director.name }}
+  name:  {{ template "director.name" .}}
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
-      run: {{ .Values.director.name }}
+      run:  {{ template "director.name" .}}
   replicas: {{ .Values.director.replicas }}
   template:
     metadata:
       labels:
-        run: {{ .Values.director.name }}
+        run:  {{ template "director.name" .}}
     spec:
       serviceAccount: {{ .Values.director.serviceAccountName }}
       containers:
-        - name: {{ .Values.director.name }}
+        - name:  {{ template "director.name" .}}
           image: "{{ .Values.director.image.repository }}:{{ .Values.director.image.tag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.director.imagePullPolicy }}
 ---
 apiVersion: v1
 kind: ServiceAccount

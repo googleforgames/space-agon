@@ -12,56 +12,60 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This file is for values.yaml in install/helm/space-agon.
-# Use `make build` or `make build-local` to generate the file.
+# This file is original values.yaml in install/helm/space-agon.
+# You can use this if you would like to return original values.
 
 frontend:
   name: frontend
-  replicas: ${REPLICAS_FRONTEND}
+  replicas: 1
   containerPort: 8080
   servicePort: 80
   serviceType: LoadBalancer 
   image: 
-    repository: ${REGISTRY}/space-agon-frontend
-    tag: ${TAG}
+    repository: local/space-agon-frontend
+    tag: IMAGE_TAG
+    imagePullPolicy: IfNotPresent
 
 mmf:
   name: mmf
-  replicas: ${REPLICAS_MMF}
+  replicas: 1
   containerPort: 50502
   serviceType: ClusterIP
   servicePort: 50502
   image: 
-    repository: ${REGISTRY}/space-agon-mmf
-    tag: ${TAG}
+    repository: local/space-agon-mmf
+    tag: IMAGE_TAG
+  imagePullPolicy: IfNotPresent
 
 director:
   name: director
   replicas: 1
   serviceAccountName: fleet-allocator
   image: 
-    repository: ${REGISTRY}/space-agon-director
-    tag: ${TAG}
+    repository: local/space-agon-director
+    tag: IMAGE_TAG
+  imagePullPolicy: IfNotPresent
 
 dedicated:
   name: dedicated
-  replicas: ${REPLICAS_DEDICATED}
+  replicas: 1
   containerPort: 2156 
   protocol: TCP
   image: 
-    repository: ${REGISTRY}/space-agon-dedicated
-    tag: ${TAG}
+    repository: local/space-agon-dedicated
+    tag: IMAGE_TAG
+  imagePullPolicy: IfNotPresent
   portPolicy: Dynamic
   resources:
     limits:
-      cpu: ${LIMITS_CPU}
-      memory: ${LIMITS_MEMORY}
+      cpu: 100m
+      memory: 100Mi
     requests:
-      cpu: ${REQUEST_CPU}
-      memory: ${REQUEST_MEMORY}
+      cpu: 100m
+      memory: 100Mi
   autoscaler:
     type: Buffer
     buffer:
-      bufferSize: ${BUFFER_SIZE}
-      minReplicas: ${MIN_REPLICAS} 
-      maxReplicas: ${MAX_REPLICAS}
+      bufferSize: 1
+      minReplicas: 0 
+      maxReplicas: 1
