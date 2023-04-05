@@ -85,10 +85,10 @@ make openmatch-install
 ```bash
 # Start minikube
 # ref: https://minikube.sigs.k8s.io/docs/commands/start/
-minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.24.1 --driver=hyperkit
+minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.23.17 --driver=hyperkit
 
 # Or you can use docker
-minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.24.1 --driver=docker
+minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.23.17 --driver=docker
 
 # Add Helm Repositories 
 make helm-repo-add

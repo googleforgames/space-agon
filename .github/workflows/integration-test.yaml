@@ -31,7 +31,7 @@ jobs:
         uses: medyagh/setup-minikube@master
         id: space-agon
         with:
-          kubernetes-version: v1.24.1
+          kubernetes-version: v1.23.17
           cpus: 2
           memory: 4096m
       - name: Install helm and envsubst
