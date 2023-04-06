@@ -85,10 +85,8 @@ make openmatch-install
 ```bash
 # Start minikube
 # ref: https://minikube.sigs.k8s.io/docs/commands/start/
+# Or you can other dirvers
 minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.23.17 --driver=hyperkit
-
-# Or you can use docker
-minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.23.17 --driver=docker
 
 # Add Helm Repositories 
 make helm-repo-add
@@ -157,7 +155,7 @@ Then use the connect to server option with the value `<ip>:<port>`.
 
 ## Changing the parameters
 
-If you'd like to modify your parameters of your deployments, you can change in [`install/helm/space-agon/values.yaml`](./install/helm/space-agon/values.yaml).
+If you'd like to modify your parameters of your deployments, you can change in [`install/helm/space-agon/values.yaml`](./install/helm/space-agon/values.yaml) or use `--set` parameters directly.
 
 Space Agon uses [Helm](https://helm.sh/) to install the applications.
 
