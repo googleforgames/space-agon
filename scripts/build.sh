@@ -14,58 +14,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-export TAG=$(git rev-parse --short HEAD)
-export PREFIX="space-agon"
-
-if [ $1 = "test" ] ;then
-    export ENV="test"
-    export REGISTRY=local
-else
-    export ENV="develop"
-    export REGISTRY=$1
-    export PROJECT=$2
-    export LOCATION=$3
-fi
+export ENV=$1
+export TAG=$2
+export FRONTEND_IMG=$3
+export DEDICATED_IMG=$4
+export DIRECTOR_IMG=$5
+export MMF_IMG=$6
+export REGISTRY=$7
+export PROJECT=$8
+export LOCATION=$9
 
 # Use docker engine in minikube
 if [ ${ENV} = "test" ] ;then
+    export REGISTRY=local
     eval $(minikube -p minikube docker-env)
 fi
 
 # Build images
-docker build -f ./Frontend.Dockerfile -t ${REGISTRY}/${PREFIX}-frontend:${TAG} .
-docker build -f ./Dedicated.Dockerfile -t ${REGISTRY}/${PREFIX}-dedicated:${TAG} .
-docker build -f ./Director.Dockerfile -t ${REGISTRY}/${PREFIX}-director:${TAG} .
-docker build -f ./Mmf.Dockerfile -t ${REGISTRY}/${PREFIX}-mmf:${TAG} .
+docker build -f ./Frontend.Dockerfile -t "${REGISTRY}/${FRONTEND_IMG}:${TAG}" .
+docker build -f ./Dedicated.Dockerfile -t "${REGISTRY}/${DEDICATED_IMG}:${TAG}" .
+docker build -f ./Director.Dockerfile -t "${REGISTRY}/${DIRECTOR_IMG}:${TAG}" .
+docker build -f ./Mmf.Dockerfile -t "${REGISTRY}/${MMF_IMG}:${TAG}" .
 
 # Push images
 if [ ${ENV} = "develop" ];then
-    docker push ${REGISTRY}/${PREFIX}-frontend:${TAG}
-    docker push ${REGISTRY}/${PREFIX}-dedicated:${TAG}
-    docker push ${REGISTRY}/${PREFIX}-director:${TAG}
-    docker push ${REGISTRY}/${PREFIX}-mmf:${TAG}
-fi
-
-# Replace image repository & tags
-if [ ${ENV} = "develop" ] ;then
-    export REPLICAS_DEDICATED=2 
-    export REPLICAS_FRONTEND=2 
-    export REPLICAS_MMF=2 
-    export REQUEST_MEMORY=200Mi 
-    export REQUEST_CPU=500m 
-    export LIMITS_MEMORY=200Mi 
-    export LIMITS_CPU=500m 
-    export BUFFER_SIZE=2 
-    export MIN_REPLICAS=0 
-    export MAX_REPLICAS=50 
-	envsubst < templates/helm_template_values.yaml > install/helm/space-agon/values.yaml
+    docker push ${REGISTRY}/${FRONTEND_IMG}:${TAG}
+    docker push ${REGISTRY}/${DEDICATED_IMG}:${TAG}
+    docker push ${REGISTRY}/${DIRECTOR_IMG}:${TAG}
+    docker push ${REGISTRY}/${MMF_IMG}:${TAG}
 fi
 
 export REGEXP="s/[-/.:@]/_/g"
 # Sanitized characters - / . : for skaffold
 # https://skaffold.dev/docs/deployers/helm/#sanitizing-the-artifact-name-from-invalid-go-template-characters
 export SANITIZED_REGISTRY=$(echo ${REGISTRY} | sed -e ${REGEXP})
-export SANITIZED_PREFIX=$(echo ${PREFIX} | sed -e ${REGEXP})
+export SANITIZED_FRONTEND=$(echo ${FRONTEND_IMG} | sed -e ${REGEXP})
+export SANITIZED_DEDICATED=$(echo ${DEDICATED_IMG} | sed -e ${REGEXP})
+export SANITIZED_DIRECTOR=$(echo ${DIRECTOR_IMG} | sed -e ${REGEXP})
+export SANITIZED_MMF=$(echo ${MMF_IMG} | sed -e ${REGEXP})
 
 # Create skaffold.yaml with environments
 envsubst < templates/skaffold_template.yaml > skaffold.yaml

@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This file is for values.yaml in install/helm/space-agon.
-# Use `make build` or `make build-local` to override.
-
 frontend:
   name: frontend
   replicas: 1
@@ -23,7 +20,7 @@ frontend:
   serviceType: LoadBalancer 
   image: 
     repository: local/space-agon-frontend
-    tag: IMAGE_TAG
+    tag: TAG
     imagePullPolicy: IfNotPresent
 
 mmf:
@@ -34,7 +31,7 @@ mmf:
   servicePort: 50502
   image: 
     repository: local/space-agon-mmf
-    tag: IMAGE_TAG
+    tag: TAG
   imagePullPolicy: IfNotPresent
 
 director:
@@ -43,7 +40,7 @@ director:
   serviceAccountName: fleet-allocator
   image: 
     repository: local/space-agon-director
-    tag: IMAGE_TAG
+    tag: TAG
   imagePullPolicy: IfNotPresent
 
 dedicated:
@@ -53,7 +50,7 @@ dedicated:
   protocol: TCP
   image: 
     repository: local/space-agon-dedicated
-    tag: IMAGE_TAG
+    tag: TAG
   imagePullPolicy: IfNotPresent
   portPolicy: Dynamic
   resources:
