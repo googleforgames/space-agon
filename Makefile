@@ -79,14 +79,8 @@ help:
 	@echo "Install Space Agon on minikube"
 	@echo "    make install-local"
 	@echo ""
-	@echo "Uninstall Agones in local-cluster"
-	@echo "    make agones-uninstall-local"
-	@echo ""
 	@echo "Uninstall Agones"
 	@echo "    make agones-uninstall"
-	@echo ""
-	@echo "Uninstall Open Match in local-cluster"
-	@echo "    make openmatch-uninstall-local"
 	@echo ""
 	@echo "Uninstall Open Match"
 	@echo "    make openmatch-uninstall"
@@ -165,12 +159,6 @@ agones-install:
 		--create-namespace $(AGONES_NS)/agones \
 		--version ${AGONES_VER}
 
-# uninstall agones and agones resources in local-cluster
-.PHONY: agones-uninstall-local
-agones-uninstall-local:
-	helm uninstall $(AGONES_NS) --namespace $(AGONES_NS)
-	kubectl delete namespace $(AGONES_NS)
-
 # uninstall agones and agones resources
 .PHONY: agones-uninstall
 agones-uninstall:
@@ -218,12 +206,6 @@ openmatch-install:
 	--set redis.master.persistence.enabled=false \
 	--set redis.replica.replicaCount=0 \
 	--set redis.metrics.enabled=false
-
-# uninstall open-match in local-cluster
-.PHONY: openmatch-uninstall-local
-openmatch-uninstall-local:
-	helm uninstall -n $(OM_NS) $(OM_NS)
-	kubectl delete namespace $(OM_NS)
 
 # uninstall open-match
 .PHONY: openmatch-uninstall

@@ -185,21 +185,13 @@ make uninstall
 ### Uninstall Agones
 
 ```bash
-# For GKE
 make agones-uninstall
-
-# For minikube
-make agones-uninstall-local
 ```
 
 ### Uninstall Open-Match
 
 ```bash
-# For GKE
 make openmatch-uninstall
-
-# For minikube
-make openmatch-uninstall-local
 ```
 
 ### (Optional) Remove Helm Repositories
