@@ -21,8 +21,6 @@ export DEDICATED_IMG=$4
 export DIRECTOR_IMG=$5
 export MMF_IMG=$6
 export REGISTRY=$7
-export PROJECT=$8
-export LOCATION=$9
 
 # Use docker engine in minikube
 if [ ${ENV} = "test" ] ;then
@@ -43,15 +41,3 @@ if [ ${ENV} = "develop" ];then
     docker push ${REGISTRY}/${DIRECTOR_IMG}:${TAG}
     docker push ${REGISTRY}/${MMF_IMG}:${TAG}
 fi
-
-export REGEXP="s/[-/.:@]/_/g"
-# Sanitized characters - / . : for skaffold
-# https://skaffold.dev/docs/deployers/helm/#sanitizing-the-artifact-name-from-invalid-go-template-characters
-export SANITIZED_REGISTRY=$(echo ${REGISTRY} | sed -e ${REGEXP})
-export SANITIZED_FRONTEND=$(echo ${FRONTEND_IMG} | sed -e ${REGEXP})
-export SANITIZED_DEDICATED=$(echo ${DEDICATED_IMG} | sed -e ${REGEXP})
-export SANITIZED_DIRECTOR=$(echo ${DIRECTOR_IMG} | sed -e ${REGEXP})
-export SANITIZED_MMF=$(echo ${MMF_IMG} | sed -e ${REGEXP})
-
-# Create skaffold.yaml with environments
-envsubst < templates/skaffold_template.yaml > skaffold.yaml

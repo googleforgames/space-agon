@@ -24,7 +24,7 @@ Install tools in your dev environment:
 - [docker](https://www.docker.com/)
 - [kubectl](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_kubectl)
 - [helm](https://helm.sh/)
-- [envsubst](https://linux.die.net/man/1/envsubst)
+- [envsubst](https://linux.die.net/man/1/envsubst) (Optional)
 - [skaffold](https://skaffold.dev/) (Optional)
 - [minikube](https://minikube.sigs.k8s.io/docs/start/) (Optional)
 - [hyperkit](https://github.com/moby/hyperkit) (Optional)
@@ -233,6 +233,15 @@ After running `make build` or `make build-local`, you're ready to run `skaffold`
 Once you create a `skaffold.yaml`, you can run `skaffold` commands.
 
 ```bash
+# You need envsubst for setting up a skaffold file
+# Setup skaffold 
+
+make skaffold-setup
+
+# For local development
+
+make skaffold-setup-local
+
 # Build Space Agon images with Cloud Build
 skaffold build 
 
@@ -240,7 +249,6 @@ skaffold build
 skaffold dev
 
 # Use cloud profile in case of GKE (Run `make build` first)
-make cloudbuild-setup
 skaffold dev -p cloud
 
 # Check your deployed yaml file

@@ -97,8 +97,11 @@ help:
 	@echo "Uninstall Space Agon"
 	@echo "    make uninstall"
 	@echo ""
-	@echo "Setup Cloud Build for building your image remotely"
-	@echo "    make cloudbuild-setup"
+	@echo "Setup skaffold for developing application"
+	@echo "    make skaffold-setup"
+	@echo ""
+	@echo "Setup skaffold for local developing application"
+	@echo "    make skaffold-setup-local"
 	@echo ""
 	@echo "Run integration test"
 	@echo "    make integration-test"
@@ -113,9 +116,7 @@ build-local:
 		${DEDICATED_IMG} \
 		${DIRECTOR_IMG} \
 		${MMF_IMG} \
-		${REGISTRY} \
-		${PROJECT} \
-		${LOCATION} \
+		${REGISTRY} 
 
 # build space-agon docker images
 .PHONY: build
@@ -126,9 +127,7 @@ build:
 		${DEDICATED_IMG} \
 		${DIRECTOR_IMG} \
 		${MMF_IMG} \
-		${REGISTRY} \
-		${PROJECT} \
-		${LOCATION} \
+		${REGISTRY} 
 
 # create gke cluster
 .PHONY: gcloud-test-cluster
@@ -231,9 +230,27 @@ openmatch-uninstall:
 	helm uninstall -n ${OM_NS} ${OM_NS}
 	kubectl delete namespace ${OM_NS}
 
-.PHONY: cloudbuild-setup
-cloudbuild-setup:
-	./scripts/setup-cloudbuild.sh ${PROJECT} ${REGISTRY}
+.PHONY: skaffold-setup-local
+skaffold-setup-local:
+	./scripts/setup-skaffold.sh \
+	${PROJECT} \
+	local \
+	${FRONTEND_IMG} \
+	${DEDICATED_IMG} \
+	${DIRECTOR_IMG} \
+	${MMF_IMG} \
+	${LOCATION}
+
+.PHONY: skaffold-setup
+skaffold-setup:
+	./scripts/setup-skaffold.sh \
+	${PROJECT} \
+	${REGISTRY} \
+	${FRONTEND_IMG} \
+	${DEDICATED_IMG} \
+	${DIRECTOR_IMG} \
+	${MMF_IMG} \
+	${LOCATION}
 
 # install space-agon itself
 .PHONY: install

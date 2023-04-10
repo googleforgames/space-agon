@@ -24,19 +24,19 @@ build:
     gitCommit:
       variant: Tags
   artifacts:
-  - image: ${REGISTRY}/space-agon-dedicated
+  - image: ${REGISTRY}/${DEDICATED_IMG}
     context: ./
     docker:
       dockerfile: Dedicated.Dockerfile
-  - image: ${REGISTRY}/space-agon-director
+  - image: ${REGISTRY}/${DIRECTOR_IMG}
     context: ./
     docker:
       dockerfile: Director.Dockerfile
-  - image: ${REGISTRY}/space-agon-frontend
+  - image: ${REGISTRY}/${FRONTEND_IMG}
     context: ./
     docker:
       dockerfile: Frontend.Dockerfile
-  - image: ${REGISTRY}/space-agon-mmf
+  - image: ${REGISTRY}/${MMF_IMG}
     context: ./
     docker:
       dockerfile: Mmf.Dockerfile
@@ -73,7 +73,7 @@ profiles:
   - name: cloud
     build:
       googleCloudBuild:
-        projectId: ${PROJECT}
+        projectId: ${PROJECT_ID}
         timeout: "600s"
         concurrency: 0
         region: ${LOCATION}
