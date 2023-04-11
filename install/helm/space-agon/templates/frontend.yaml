@@ -15,20 +15,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.frontend.name }}
+  name: {{ template "frontend.name" .}}
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
-      run: {{ .Values.frontend.name }}
+      run: {{ template "frontend.name" .}}
   replicas: {{ .Values.frontend.replicas }}
   template:
     metadata:
       labels:
-        run: {{ .Values.frontend.name }}
+        run: {{ template "frontend.name" .}}
     spec:
       containers:
-        - name: {{ .Values.frontend.name }}
+        - name: {{ template "frontend.name" .}}
           image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
           imagePullPolicy: {{ .Values.frontend.imagePullPolicy }}
           ports:
@@ -37,15 +37,15 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.frontend.name }}
+  name: {{ template "frontend.name" .}}
   namespace: {{ .Release.Namespace }}
   labels:
-    run: {{ .Values.frontend.name }}
+    run: {{ template "frontend.name" .}}
 spec:
   ports:
     - port: {{ .Values.frontend.servicePort }}
       targetPort: {{ .Values.frontend.containerPort }}
       protocol: TCP
   selector:
-    run: {{ .Values.frontend.name }}
+    run: {{ template "frontend.name" .}}
   type: {{ .Values.frontend.serviceType }}
