@@ -1,0 +1,105 @@
+# Copyright 2022 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This file is for skaffold.yaml at the project root .
+# Use `make build` or `make build-local` to generate the file.
+
+apiVersion: skaffold/v4beta2
+kind: Config
+metadata:
+  name: space-agon
+build:
+  tagPolicy:
+    gitCommit:
+      variant: Tags
+  artifacts:
+  - image: ${REGISTRY}/${DEDICATED_IMG}
+    context: ./
+    docker:
+      dockerfile: Dedicated.Dockerfile
+  - image: ${REGISTRY}/${DIRECTOR_IMG}
+    context: ./
+    docker:
+      dockerfile: Director.Dockerfile
+  - image: ${REGISTRY}/${FRONTEND_IMG}
+    context: ./
+    docker:
+      dockerfile: Frontend.Dockerfile
+  - image: ${REGISTRY}/${MMF_IMG}
+    context: ./
+    docker:
+      dockerfile: Mmf.Dockerfile
+  local:
+    concurrency: 1
+deploy:
+  helm:
+    releases:
+      - name: space-agon
+        namespace: default
+        chartPath: install/helm/space-agon
+        recreatePods: true
+        setValueTemplates:
+          frontend.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_${SANITIZED_FRONTEND}}}"
+          frontend.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_${SANITIZED_FRONTEND}}}"
+          director.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_${SANITIZED_DIRECTOR}}}"
+          director.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_${SANITIZED_DIRECTOR}}}"
+          mmf.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_${SANITIZED_MMF}}}"
+          mmf.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_${SANITIZED_MMF}}}"
+          dedicated.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_${SANITIZED_DEDICATED}}}"
+          dedicated.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_${SANITIZED_DEDICATED}}}"
+        setValues:
+          frontend.replicas: 1 
+          dedicated.replicas: 1 
+          mmf.replicas: 1 
+          dedicated.resources.limits.cpu: "100m" 
+          dedicated.resources.limits.memory: "100Mi" 
+          dedicated.resources.requests.cpu: "100m" 
+          dedicated.resources.requests.memory: "100Mi" 
+          autoscaler.buffer.bufferSize: 1 
+          autoscaler.buffer.minReplicas: 0 
+          autoscaler.buffer.maxReplicas: 1
+profiles:
+  - name: cloud
+    build:
+      googleCloudBuild:
+        projectId: ${PROJECT_ID}
+        timeout: "600s"
+        concurrency: 0
+        region: ${LOCATION}
+    deploy:
+      helm:
+        releases:
+          - name: space-agon
+            chartPath: install/helm/space-agon
+            recreatePods: true
+            setValueTemplates:
+              frontend.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_${SANITIZED_FRONTEND}}}"
+              frontend.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_${SANITIZED_FRONTEND}}}"
+              director.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_${SANITIZED_DIRECTOR}}}"
+              director.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_${SANITIZED_DIRECTOR}}}"
+              mmf.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_${SANITIZED_MMF}}}"
+              mmf.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_${SANITIZED_MMF}}}"
+              dedicated.image.repository: "{{.IMAGE_REPO_${SANITIZED_REGISTRY}_${SANITIZED_DEDICATED}}}"
+              dedicated.image.tag: "{{.IMAGE_TAG_${SANITIZED_REGISTRY}_${SANITIZED_DEDICATED}}}"
+            setValues:
+              frontend.replicas: 2 
+              dedicated.replicas: 2 
+              mmf.replicas: 2 
+              dedicated.resources.limits.cpu: "500m" 
+              dedicated.resources.limits.memory: "200Mi" 
+              dedicated.resources.requests.cpu: "500m" 
+              dedicated.resources.requests.memory: "200Mi" 
+              autoscaler.buffer.bufferSize: 2 
+              autoscaler.buffer.minReplicas: 0 
+              autoscaler.buffer.maxReplicas: 50 

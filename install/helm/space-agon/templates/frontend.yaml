@@ -1,0 +1,51 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "frontend.name" .}}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      run: {{ template "frontend.name" .}}
+  replicas: {{ .Values.frontend.replicas }}
+  template:
+    metadata:
+      labels:
+        run: {{ template "frontend.name" .}}
+    spec:
+      containers:
+        - name: {{ template "frontend.name" .}}
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+          imagePullPolicy: {{ .Values.frontend.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.frontend.containerPort }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "frontend.name" .}}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    run: {{ template "frontend.name" .}}
+spec:
+  ports:
+    - port: {{ .Values.frontend.servicePort }}
+      targetPort: {{ .Values.frontend.containerPort }}
+      protocol: TCP
+  selector:
+    run: {{ template "frontend.name" .}}
+  type: {{ .Values.frontend.serviceType }}

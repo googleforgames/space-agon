@@ -1,0 +1,76 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  {{ template "director.name" .}}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      run:  {{ template "director.name" .}}
+  replicas: {{ .Values.director.replicas }}
+  template:
+    metadata:
+      labels:
+        run:  {{ template "director.name" .}}
+    spec:
+      serviceAccount: {{ .Values.director.serviceAccountName }}
+      containers:
+        - name:  {{ template "director.name" .}}
+          image: "{{ .Values.director.image.repository }}:{{ .Values.director.image.tag }}"
+          imagePullPolicy: {{ .Values.director.imagePullPolicy }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.director.serviceAccountName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.director.serviceAccountName }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Values.director.serviceAccountName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.director.serviceAccountName }}
+rules:
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create"]
+  - apiGroups: ["allocation.agones.dev"]
+    resources: ["gameserverallocations"]
+    verbs: ["create"]
+  - apiGroups: ["agones.dev"]
+    resources: ["fleets"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.director.serviceAccountName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.director.serviceAccountName }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.director.serviceAccountName }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Values.director.serviceAccountName }}
+---
