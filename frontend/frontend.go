@@ -87,7 +87,9 @@ func matchmake(ws *websocket.Conn) {
 
 func streamAssignments(ctx context.Context, assignments chan *pb.Assignment, errs chan error) {
 	conn, err := connectFrontendServer()
-	errs <- err
+	if err != nil {
+		errs <- err
+	}
 	defer conn.Close()
 	fe := pb.NewFrontendServiceClient(conn)
 

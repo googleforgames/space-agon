@@ -291,17 +291,24 @@ func startAgones() (playerConnected func(), playerDisconnected func()) {
 		log.Fatal(err)
 	}
 	go func() {
+		//nolint:all
 		time.Sleep(3)
-		a.Ready()
+		err = a.Ready()
+		if err != nil {
+			log.Println(err)
+		}
 		for range time.Tick(time.Second) {
-			a.Health()
+			err = a.Health()
+			if err != nil {
+				log.Println(err)
+			}
 		}
 	}()
 
 	var shutdown sync.Once
 	var firstPlayerJoined sync.Once
 	waitForFirstPlayer := make(chan struct{})
-	a.WatchGameServer(func(gs *agonesSdk.GameServer) {
+	err = a.WatchGameServer(func(gs *agonesSdk.GameServer) {
 		if gs.GetStatus().GetState() == "Allocated" {
 			shutdown.Do(func() {
 				log.Println("Detected the server is allocated.")
@@ -314,10 +321,16 @@ func startAgones() (playerConnected func(), playerDisconnected func()) {
 				log.Println("Waiting for all players to disconnect then shutting down.")
 				waitForEmpty.Wait()
 				log.Println("Server empty, shutting down.")
-				a.Shutdown()
+				err = a.Shutdown()
+				if err != nil {
+					log.Println(err)
+				}
 			})
 		}
 	})
+	if err != nil {
+		log.Println(err)
+	}
 
 	return func() {
 			waitForEmpty.Add(1)

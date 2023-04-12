@@ -59,6 +59,7 @@ func TestAssignment(t *testing.T) {
 	achan := getAssignment(url, origin)
 	achan2 := getAssignment(url, origin)
 
+	//nolint:all
 	a1, a2 := <-achan, <-achan2
 
 	if a1.Connection != a2.Connection {
@@ -99,6 +100,7 @@ func connectGameServer(url string, origin string, ctx context.Context) int64 {
 
 	go func() {
 	LOOP:
+		//nolint:all
 		for {
 			select {
 			case <-ctx.Done():

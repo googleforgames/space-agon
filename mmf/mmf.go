@@ -21,6 +21,7 @@ import (
 	"net"
 	"time"
 
+	"google.golang.org/grpc/credentials/insecure"
 	"open-match.dev/open-match/pkg/matchfunction"
 
 	"google.golang.org/grpc"
@@ -35,7 +36,7 @@ const (
 func main() {
 	log.Println("Initializing")
 
-	conn, err := grpc.Dial(mmlogicAddress, grpc.WithInsecure())
+	conn, err := grpc.Dial(mmlogicAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -59,9 +60,7 @@ func main() {
 }
 
 type matchFunctionService struct {
-	grpc               *grpc.Server
 	queryServiceClient pb.QueryServiceClient
-	port               int
 }
 
 func (mmf *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_RunServer) error {
@@ -74,6 +73,9 @@ func (mmf *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction
 
 	// Make match proposal
 	proposals, err := makeMatches(req.Profile, poolTickets)
+	if err != nil {
+		return err
+	}
 
 	matchesFound := 0
 	for _, proposal := range proposals {

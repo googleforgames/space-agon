@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -41,19 +40,13 @@ func TestMatchmake(t *testing.T) {
 
 func TestStreamAssignments(t *testing.T) {
 	ch := make(chan *ompb.Assignment)
+	defer close(ch)
 	errs := make(chan error)
-	defer func() {
-		log.Println("done") // Println executes normally even if there is a panic
-		if x := recover(); x != nil {
-			log.Printf("run time panic: %v", x)
-		}
-	}()
+	defer close(errs)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 	go streamAssignments(ctx, ch, errs)
 	assert.NotEqual(t, codes.Unimplemented, <-errs)
-	close(ch)
-	close(errs)
 	cancel()
 }
