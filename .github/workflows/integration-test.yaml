@@ -31,10 +31,11 @@ jobs:
         uses: golangci/golangci-lint-action@v3
         with:
           version: latest
+          args: --timeout=15m
           skip-build-cache: true
       - name: Unit test
         run: make test
-  test:
+  integration-test:
     runs-on: ubuntu-latest
     steps:
       - name: Pull repo

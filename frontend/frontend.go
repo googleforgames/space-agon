@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os"
 
@@ -27,11 +26,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"open-match.dev/open-match/pkg/pb"
-	omtest "open-match.dev/open-match/testing"
 )
 
 const (
-	frontendAddress = "open-match-frontend.open-match.svc.cluster.local:50504"
+	defaultFrontendAddress = "open-match-frontend.open-match.svc.cluster.local:50504"
 )
 
 func main() {
@@ -132,34 +130,13 @@ func streamAssignments(ctx context.Context, assignments chan *pb.Assignment, err
 }
 
 func connectFrontendServer() (*grpc.ClientConn, error) {
-	var err error
-	var conn *grpc.ClientConn
-	if len(os.Args) > 1 && os.Args[1][:5] == "-test" {
-		var l net.Listener
-		l, err = net.Listen("tcp", "localhost:0")
-		if err != nil {
-			panic(err)
-		}
-		conn, err = grpc.Dial(l.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			return nil, fmt.Errorf("error dialiing to mock: %w", err)
-		}
-		gsrv := grpc.NewServer()
-		ff := omtest.FakeFrontend{}
-		pb.RegisterFrontendServiceServer(gsrv, &ff)
-
-		// Run grpc mock server
-		go func() {
-			log.Println("Mock server start:", l.Addr())
-			if err = gsrv.Serve(l); err != nil {
-				panic(err)
-			}
-		}()
-	} else {
-		conn, err = grpc.Dial(frontendAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			return nil, fmt.Errorf("error dialing open match: %w", err)
-		}
+	frontendAddr := os.Getenv("FRONTEND_ADDR")
+	if frontendAddr == "" {
+		frontendAddr = defaultFrontendAddress
+	}
+	conn, err := grpc.Dial(frontendAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("error dialing open match: %w", err)
 	}
 	return conn, nil
 }
