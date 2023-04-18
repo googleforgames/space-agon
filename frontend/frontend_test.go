@@ -21,9 +21,7 @@ import (
 	omtest "open-match.dev/open-match/testing"
 )
 
-func setupFrontendMock(t *testing.T) (*grpc.Server, net.Listener, error) {
-	t.Helper()
-
+func setupFrontendMock() (*grpc.Server, net.Listener, error) {
 	var l net.Listener
 	l, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
@@ -48,21 +46,25 @@ func setupFrontendMock(t *testing.T) (*grpc.Server, net.Listener, error) {
 	return gsrv, l, nil
 }
 
-func TestMatchmake(t *testing.T) {
+func TestMain(m *testing.M) {
 	// Setup for test
-	gsrv, l, err := setupFrontendMock(t)
+	gsrv, l, err := setupFrontendMock()
 	defer func() {
 		gsrv.Stop()
 		l.Close()
 	}()
 	if err != nil {
-		t.Fatalf("Frontend Mockserver start failed: %v", err)
+		log.Fatalf("Frontend Mockserver start failed: %v", err)
 	}
 	err = os.Setenv("FRONTEND_ADDR", l.Addr().String())
 	if err != nil {
-		t.Fatalf("Set FRONTEND_ADDR env failed: %v", err)
+		log.Fatalf("Set FRONTEND_ADDR env failed: %v", err)
 	}
+	
+	m.Run()
+}
 
+func TestMatchmake(t *testing.T) {
 	s := httptest.NewServer(websocket.Handler(matchmake))
 	defer s.Close()
 
@@ -85,20 +87,6 @@ func TestMatchmake(t *testing.T) {
 }
 
 func TestStreamAssignments(t *testing.T) {
-	// Setup for test
-	gsrv, l, err := setupFrontendMock(t)
-	defer func() {
-		gsrv.Stop()
-		l.Close()
-	}()
-	if err != nil {
-		t.Fatalf("Frontend Mockserver start failed: %v", err)
-	}
-	err = os.Setenv("FRONTEND_ADDR", l.Addr().String())
-	if err != nil {
-		t.Fatalf("Set FRONTEND_ADDR env failed: %v", err)
-	}
-
 	ch := make(chan *ompb.Assignment)
 	defer close(ch)
 	errs := make(chan error)
@@ -112,20 +100,6 @@ func TestStreamAssignments(t *testing.T) {
 }
 
 func TestConnectFrontendServer(t *testing.T) {
-	// Setup for test
-	gsrv, l, err := setupFrontendMock(t)
-	defer func() {
-		gsrv.Stop()
-		l.Close()
-	}()
-	if err != nil {
-		t.Fatalf("Frontend Mockserver start failed: %v", err)
-	}
-	err = os.Setenv("FRONTEND_ADDR", l.Addr().String())
-	if err != nil {
-		t.Fatalf("Set FRONTEND_ADDR env failed: %v", err)
-	}
-
 	conn, err := connectFrontendServer()
 	defer func() {
 		err = conn.Close()
