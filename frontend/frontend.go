@@ -18,12 +18,20 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"os"
 
 	"github.com/googleforgames/space-agon/game/protostream"
 	"golang.org/x/net/websocket"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"open-match.dev/open-match/pkg/pb"
+	omtest "open-match.dev/open-match/testing"
+)
+
+const (
+	frontendAddress = "open-match-frontend.open-match.svc.cluster.local:50504"
 )
 
 func main() {
@@ -59,7 +67,7 @@ func matchmake(ws *websocket.Conn) {
 	for {
 		select {
 		case err := <-errs:
-			log.Println("Error getting assgnment:", err)
+			log.Println("Error getting assignment:", err)
 			//err = stream.Send(&pb.Assignment{Error: status.Convert(err).Proto()})
 			err = stream.Send(&pb.Assignment{})
 			if err != nil {
@@ -78,10 +86,8 @@ func matchmake(ws *websocket.Conn) {
 }
 
 func streamAssignments(ctx context.Context, assignments chan *pb.Assignment, errs chan error) {
-	conn, err := grpc.Dial("open-match-frontend.open-match.svc.cluster.local:50504", grpc.WithInsecure())
-	if err != nil {
-		errs <- fmt.Errorf("error dialing open match: %w", err)
-	}
+	conn, err := connectFrontendServer()
+	errs <- err
 	defer conn.Close()
 	fe := pb.NewFrontendServiceClient(conn)
 
@@ -98,7 +104,7 @@ func streamAssignments(ctx context.Context, assignments chan *pb.Assignment, err
 	ticketId = resp.Id
 
 	defer func() {
-		_, err := fe.DeleteTicket(context.Background(), &pb.DeleteTicketRequest{TicketId: ticketId})
+		_, err = fe.DeleteTicket(context.Background(), &pb.DeleteTicketRequest{TicketId: ticketId})
 		if err != nil {
 			log.Println("Error deleting ticket", ticketId, ":", err)
 		}
@@ -121,4 +127,37 @@ func streamAssignments(ctx context.Context, assignments chan *pb.Assignment, err
 		}
 		assignments <- resp.Assignment
 	}
+}
+
+func connectFrontendServer() (*grpc.ClientConn, error) {
+	var err error
+	var conn *grpc.ClientConn
+	if len(os.Args) > 1 && os.Args[1][:5] == "-test" {
+		var l net.Listener
+		l, err = net.Listen("tcp", "localhost:0")
+		if err != nil {
+			panic(err)
+		}
+		conn, err = grpc.Dial(l.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			return nil, fmt.Errorf("error dialiing to mock: %w", err)
+		}
+		gsrv := grpc.NewServer()
+		ff := omtest.FakeFrontend{}
+		pb.RegisterFrontendServiceServer(gsrv, &ff)
+
+		// Run grpc mock server
+		go func() {
+			log.Println("Mock server start:", l.Addr())
+			if err = gsrv.Serve(l); err != nil {
+				panic(err)
+			}
+		}()
+	} else {
+		conn, err = grpc.Dial(frontendAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			return nil, fmt.Errorf("error dialing open match: %w", err)
+		}
+	}
+	return conn, nil
 }

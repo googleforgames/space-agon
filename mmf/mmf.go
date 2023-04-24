@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	matchName      = "a-simple-1v1-matchfunction"
+	matchName      = "first-match-mmf"
 	mmlogicAddress = "open-match-query.open-match.svc.cluster.local:50503"
 )
 
@@ -72,32 +72,42 @@ func (mmf *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction
 		return err
 	}
 
+	// Make match proposal
+	proposals, err := makeMatches(req.Profile, poolTickets)
+
+	matchesFound := 0
+	for _, proposal := range proposals {
+		err = stream.Send(&pb.RunResponse{Proposal: proposal})
+		if err != nil {
+			return err
+		}
+		matchesFound++
+	}
+	log.Printf("MMF ran creating %d matches", matchesFound)
+
+	return nil
+}
+
+func makeMatches(profile *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
+	var matches []*pb.Match
+
 	tickets, ok := poolTickets["everyone"]
 	if !ok {
-		return errors.New("Expected pool named everyone.")
+		return matches, errors.New("expected pool named everyone")
 	}
 
 	t := time.Now().Format("2006-01-02T15:04:05.00")
 
-	matchesFound := 0
 	for i := 0; i+1 < len(tickets); i += 2 {
 		proposal := &pb.Match{
-			MatchId:       fmt.Sprintf("profile-%s-time-%s-num-%d", req.Profile.Name, t, i/2),
-			MatchProfile:  req.Profile.Name,
-			MatchFunction: "first-match-mmf",
+			MatchId:       fmt.Sprintf("profile-%s-time-%s-num-%d", profile.Name, t, i/2),
+			MatchProfile:  profile.Name,
+			MatchFunction: matchName,
 			Tickets: []*pb.Ticket{
 				tickets[i], tickets[i+1],
 			},
 		}
-		matchesFound++
-
-		err := stream.Send(&pb.RunResponse{Proposal: proposal})
-		if err != nil {
-			return err
-		}
+		matches = append(matches, proposal)
 	}
-
-	log.Printf("MMF ran creating %d matches", matchesFound)
-
-	return nil
+	return matches, nil
 }

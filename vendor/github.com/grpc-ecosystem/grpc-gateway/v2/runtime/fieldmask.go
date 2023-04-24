@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -44,7 +45,7 @@ func FieldMaskFromRequestBody(r io.Reader, msg proto.Message) (*field_mask.Field
 			// if the item is an object, then enqueue all of its children
 			for k, v := range m {
 				if item.msg == nil {
-					return nil, fmt.Errorf("JSON structure did not match request type")
+					return nil, errors.New("JSON structure did not match request type")
 				}
 
 				fd := getFieldByName(item.msg.Descriptor().Fields(), k)
@@ -53,7 +54,7 @@ func FieldMaskFromRequestBody(r io.Reader, msg proto.Message) (*field_mask.Field
 				}
 
 				if isDynamicProtoMessage(fd.Message()) {
-					for _, p := range buildPathsBlindly(k, v) {
+					for _, p := range buildPathsBlindly(string(fd.FullName().Name()), v) {
 						newPath := p
 						if item.path != "" {
 							newPath = item.path + "." + newPath
@@ -61,6 +62,17 @@ func FieldMaskFromRequestBody(r io.Reader, msg proto.Message) (*field_mask.Field
 						queue = append(queue, fieldMaskPathItem{path: newPath})
 					}
 					continue
+				}
+
+				if isProtobufAnyMessage(fd.Message()) && !fd.IsList() {
+					_, hasTypeField := v.(map[string]interface{})["@type"]
+					if hasTypeField {
+						queue = append(queue, fieldMaskPathItem{path: k})
+						continue
+					} else {
+						return nil, fmt.Errorf("could not find field @type in %q in message %q", k, item.msg.Descriptor().FullName())
+					}
+
 				}
 
 				child := fieldMaskPathItem{
@@ -95,6 +107,10 @@ func FieldMaskFromRequestBody(r io.Reader, msg proto.Message) (*field_mask.Field
 	sort.Strings(fm.Paths)
 
 	return fm, nil
+}
+
+func isProtobufAnyMessage(md protoreflect.MessageDescriptor) bool {
+	return md != nil && (md.FullName() == "google.protobuf.Any")
 }
 
 func isDynamicProtoMessage(md protoreflect.MessageDescriptor) bool {

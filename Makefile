@@ -97,6 +97,9 @@ help:
 	@echo "Setup skaffold for local cluster"
 	@echo "    make skaffold-setup-local"
 	@echo ""
+	@echo "Run unit test"
+	@echo "    make test"
+	@echo ""
 	@echo "Run integration test"
 	@echo "    make integration-test"
 	@echo ""
@@ -292,6 +295,11 @@ uninstall:
 .PHONY: upgrade
 upgrade:
 	helm upgrade space-agon -f install/helm/space-agon/values.yaml ./install/helm/space-agon
+
+# unit test
+.PHONY: test
+test:
+	go test ./frontend/ ./mmf/ ./director/ ./dedicated/
 
 # integration test
 .PHONY: integration-test
