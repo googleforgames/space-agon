@@ -12,26 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Versions last updated on 2019-10-15. All installs must use specific versions
+# Versions last updated on 2023-04-18. All installs must use specific versions
 # for reproducable builds.
 # When updating, follow the instructions on all to update comments.
 
 # To update, find the highest but most specific version tag on
 # https://hub.docker.com/_/golang
-FROM golang:1.17.7-alpine3.15
+FROM golang:1.20.3-alpine3.17
 ENV GO111MODULE=on
 
 WORKDIR /workdir
 
 # No versioning needed, and versioning alpine also versions these packages.
-RUN apk add --no-cache curl unzip protobuf-dev git
+# Install protobuf-compiler
+RUN apk add --no-cache protoc protobuf-dev && protoc --version
 
-# To update, latest version here: https://github.com/golang/protobuf/releases
-ENV GO111MODULE=off
-RUN go get -d -u github.com/golang/protobuf/protoc-gen-go
-RUN git -C "$(go env GOPATH)"/src/github.com/golang/protobuf checkout v1.3.2
-RUN go install github.com/golang/protobuf/protoc-gen-go
-ENV GO111MODULE=on
+# Install protocol compiler plugins
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28 && \
+    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
 
 COPY build_protos.sh .
 RUN chmod +x build_protos.sh

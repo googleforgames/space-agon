@@ -12,18 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
+set -ex
 
 echo "BUILDING PROTO FILES"
 
 mkdir output
 
-find mount -name '*.proto' -exec echo {} \;
+PROTOS=$(find mount -name '*.proto' -not -path "*/vendor/*")
 
-find mount -name '*.proto' \
-  -exec protoc {} \
-    -Imount/ \
-    -I/usr/include/ \
-    --go_out=plugins=grpc:output \;
+protoc ${PROTOS} -I mount/ -I /usr/include/ --go_out=output --go-grpc_out=output
 
 cp -r -f output/github.com/googleforgames/space-agon/* mount/
