@@ -35,13 +35,28 @@ const metadataHeaderBinarySuffix = "-Bin"
 const xForwardedFor = "X-Forwarded-For"
 const xForwardedHost = "X-Forwarded-Host"
 
-var (
-	// DefaultContextTimeout is used for gRPC call context.WithTimeout whenever a Grpc-Timeout inbound
-	// header isn't present. If the value is 0 the sent `context` will not have a timeout.
-	DefaultContextTimeout = 0 * time.Second
+// DefaultContextTimeout is used for gRPC call context.WithTimeout whenever a Grpc-Timeout inbound
+// header isn't present. If the value is 0 the sent `context` will not have a timeout.
+var DefaultContextTimeout = 0 * time.Second
+
+// malformedHTTPHeaders lists the headers that the gRPC server may reject outright as malformed.
+// See https://github.com/grpc/grpc-go/pull/4803#issuecomment-986093310 for more context.
+var malformedHTTPHeaders = map[string]struct{}{
+	"connection": {},
+}
+
+type (
+	rpcMethodKey       struct{}
+	httpPathPatternKey struct{}
+
+	AnnotateContextOption func(ctx context.Context) context.Context
 )
 
-type rpcMethodKey struct{}
+func WithHTTPPathPattern(pattern string) AnnotateContextOption {
+	return func(ctx context.Context) context.Context {
+		return withHTTPPathPattern(ctx, pattern)
+	}
+}
 
 func decodeBinHeader(v string) ([]byte, error) {
 	if len(v)%4 == 0 {
@@ -58,8 +73,8 @@ At a minimum, the RemoteAddr is included in the fashion of "X-Forwarded-For",
 except that the forwarded destination is not another HTTP service but rather
 a gRPC service.
 */
-func AnnotateContext(ctx context.Context, mux *ServeMux, req *http.Request, rpcMethodName string) (context.Context, error) {
-	ctx, md, err := annotateContext(ctx, mux, req, rpcMethodName)
+func AnnotateContext(ctx context.Context, mux *ServeMux, req *http.Request, rpcMethodName string, options ...AnnotateContextOption) (context.Context, error) {
+	ctx, md, err := annotateContext(ctx, mux, req, rpcMethodName, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -72,8 +87,8 @@ func AnnotateContext(ctx context.Context, mux *ServeMux, req *http.Request, rpcM
 
 // AnnotateIncomingContext adds context information such as metadata from the request.
 // Attach metadata as incoming context.
-func AnnotateIncomingContext(ctx context.Context, mux *ServeMux, req *http.Request, rpcMethodName string) (context.Context, error) {
-	ctx, md, err := annotateContext(ctx, mux, req, rpcMethodName)
+func AnnotateIncomingContext(ctx context.Context, mux *ServeMux, req *http.Request, rpcMethodName string, options ...AnnotateContextOption) (context.Context, error) {
+	ctx, md, err := annotateContext(ctx, mux, req, rpcMethodName, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -84,9 +99,11 @@ func AnnotateIncomingContext(ctx context.Context, mux *ServeMux, req *http.Reque
 	return metadata.NewIncomingContext(ctx, md), nil
 }
 
-func annotateContext(ctx context.Context, mux *ServeMux, req *http.Request, rpcMethodName string) (context.Context, metadata.MD, error) {
+func annotateContext(ctx context.Context, mux *ServeMux, req *http.Request, rpcMethodName string, options ...AnnotateContextOption) (context.Context, metadata.MD, error) {
 	ctx = withRPCMethod(ctx, rpcMethodName)
-	var pairs []string
+	for _, o := range options {
+		ctx = o(ctx)
+	}
 	timeout := DefaultContextTimeout
 	if tm := req.Header.Get(metadataGrpcTimeout); tm != "" {
 		var err error
@@ -95,7 +112,7 @@ func annotateContext(ctx context.Context, mux *ServeMux, req *http.Request, rpcM
 			return nil, nil, status.Errorf(codes.InvalidArgument, "invalid grpc-timeout: %s", tm)
 		}
 	}
-
+	var pairs []string
 	for key, vals := range req.Header {
 		key = textproto.CanonicalMIMEHeaderKey(key)
 		for _, val := range vals {
@@ -158,11 +175,17 @@ type serverMetadataKey struct{}
 
 // NewServerMetadataContext creates a new context with ServerMetadata
 func NewServerMetadataContext(ctx context.Context, md ServerMetadata) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	return context.WithValue(ctx, serverMetadataKey{}, md)
 }
 
 // ServerMetadataFromContext returns the ServerMetadata in ctx
 func ServerMetadataFromContext(ctx context.Context) (md ServerMetadata, ok bool) {
+	if ctx == nil {
+		return md, false
+	}
 	md, ok = ctx.Value(serverMetadataKey{}).(ServerMetadata)
 	return
 }
@@ -255,8 +278,8 @@ func timeoutUnitToDuration(u uint8) (d time.Duration, ok bool) {
 	case 'n':
 		return time.Nanosecond, true
 	default:
+		return
 	}
-	return
 }
 
 // isPermanentHTTPHeader checks whether hdr belongs to the list of
@@ -294,6 +317,13 @@ func isPermanentHTTPHeader(hdr string) bool {
 	return false
 }
 
+// isMalformedHTTPHeader checks whether header belongs to the list of
+// "malformed headers" and would be rejected by the gRPC server.
+func isMalformedHTTPHeader(header string) bool {
+	_, isMalformed := malformedHTTPHeaders[strings.ToLower(header)]
+	return isMalformed
+}
+
 // RPCMethod returns the method string for the server context. The returned
 // string is in the format of "/package.service/method".
 func RPCMethod(ctx context.Context) (string, bool) {
@@ -310,4 +340,22 @@ func RPCMethod(ctx context.Context) (string, bool) {
 
 func withRPCMethod(ctx context.Context, rpcMethodName string) context.Context {
 	return context.WithValue(ctx, rpcMethodKey{}, rpcMethodName)
+}
+
+// HTTPPathPattern returns the HTTP path pattern string relating to the HTTP handler, if one exists.
+// The format of the returned string is defined by the google.api.http path template type.
+func HTTPPathPattern(ctx context.Context) (string, bool) {
+	m := ctx.Value(httpPathPatternKey{})
+	if m == nil {
+		return "", false
+	}
+	ms, ok := m.(string)
+	if !ok {
+		return "", false
+	}
+	return ms, true
+}
+
+func withHTTPPathPattern(ctx context.Context, httpPathPattern string) context.Context {
+	return context.WithValue(ctx, httpPathPatternKey{}, httpPathPattern)
 }

@@ -139,7 +139,12 @@ func createOMAssignTicketRequest(match *pb.Match, gsa *allocationv1.GameServerAl
 func (r Client) run() error {
 	bc := r.BackendServiceClient
 	closer := r.CloserBackendServiceClient
-	defer closer()
+	defer func() {
+		err := closer()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
 
 	agonesClient := r.AgonesClientset
 
