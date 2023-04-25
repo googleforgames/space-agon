@@ -18,8 +18,13 @@
 # Run `make skaffold-setup` command after creating the cluster.
 # This script setup skaffold.yaml
 
-PROJECT_ID=$1
-REGISTRY=$2
+export PROJECT_ID=$1
+export REGISTRY=$2
+export FRONTEND_IMG=$3
+export DEDICATED_IMG=$4
+export DIRECTOR_IMG=$5
+export MMF_IMG=$6
+export LOCATION=$7
 
 gcloud config set project ${PROJECT_ID}
 gcloud services enable cloudbuild.googleapis.com
@@ -29,7 +34,14 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
     --format="value(projectNumber)")@cloudbuild.gserviceaccount.com \
     --role="roles/storage.objectViewer"
 
-ESC_REGISTRY=$(echo ${REGISTRY} | sed -e 's/\\/\\\\/g; s/\//\\\//g; s/&/\\\&/g') &&
-sed -E 's/image: (.*)\/([^\/]*)/image: '${ESC_REGISTRY}'\/\2/;s/PROJECTID/'${PROJECT_ID}'/g' skaffold_template.yaml > skaffold.yaml
+export REGEXP="s/[-/.:@]/_/g"
+# Sanitized characters - / . : for skaffold
+# https://skaffold.dev/docs/deployers/helm/#sanitizing-the-artifact-name-from-invalid-go-template-characters
+export SANITIZED_REGISTRY=$(echo ${REGISTRY} | sed -e ${REGEXP})
+export SANITIZED_FRONTEND=$(echo ${FRONTEND_IMG} | sed -e ${REGEXP})
+export SANITIZED_DEDICATED=$(echo ${DEDICATED_IMG} | sed -e ${REGEXP})
+export SANITIZED_DIRECTOR=$(echo ${DIRECTOR_IMG} | sed -e ${REGEXP})
+export SANITIZED_MMF=$(echo ${MMF_IMG} | sed -e ${REGEXP})
 
-echo "You are ready to run skaffold commands"
+# Create skaffold.yaml with environments
+envsubst < templates/skaffold_template.yaml > skaffold.yaml

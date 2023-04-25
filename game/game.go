@@ -19,8 +19,8 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/googleforgames/space-agon/game/pb"
+	"google.golang.org/protobuf/proto"
 )
 
 type Game struct {

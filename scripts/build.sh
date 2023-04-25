@@ -14,42 +14,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-TAG=$(git rev-parse --short HEAD)
-
-if [ $1 = "test" ] ;then
-    ENV="test"
-    REGISTRY=local
-else
-    ENV="develop"
-    REGISTRY=$1
-fi
+export ENV=$1
+export TAG=$2
+export FRONTEND_IMG=$3
+export DEDICATED_IMG=$4
+export DIRECTOR_IMG=$5
+export MMF_IMG=$6
+export REGISTRY=$7
 
 # Use docker engine in minikube
 if [ ${ENV} = "test" ] ;then
+    export REGISTRY=local
     eval $(minikube -p minikube docker-env)
 fi
 
 # Build images
-docker build -f ./Frontend.Dockerfile -t ${REGISTRY}/space-agon-frontend:${TAG} .
-docker build -f ./Dedicated.Dockerfile -t ${REGISTRY}/space-agon-dedicated:${TAG} .
-docker build -f ./Director.Dockerfile -t ${REGISTRY}/space-agon-director:${TAG} .
-docker build -f ./Mmf.Dockerfile -t ${REGISTRY}/space-agon-mmf:${TAG} .
+docker build -f ./Frontend.Dockerfile -t "${REGISTRY}/${FRONTEND_IMG}:${TAG}" .
+docker build -f ./Dedicated.Dockerfile -t "${REGISTRY}/${DEDICATED_IMG}:${TAG}" .
+docker build -f ./Director.Dockerfile -t "${REGISTRY}/${DIRECTOR_IMG}:${TAG}" .
+docker build -f ./Mmf.Dockerfile -t "${REGISTRY}/${MMF_IMG}:${TAG}" .
 
 # Push images
 if [ ${ENV} = "develop" ];then
-    docker push ${REGISTRY}/space-agon-frontend:${TAG}
-    docker push ${REGISTRY}/space-agon-dedicated:${TAG}
-    docker push ${REGISTRY}/space-agon-director:${TAG}
-    docker push ${REGISTRY}/space-agon-mmf:${TAG}
-fi
-
-# Replace image repository & tags
-if [ ${ENV} = "test" ] ;then
-    REGISTRY=${REGISTRY} TAG=${TAG} REPLICAS_FRONTEND=1 REPLICAS_DEDICATED=1 REQUEST_MEMORY=100Mi REQUEST_CPU=100m \
-    LIMITS_MEMORY=100Mi LIMITS_CPU=100m BUFFER_SIZE=1 MIN_REPLICAS=0 MAX_REPLICAS=1 REPLICAS_MMF=1 \
-	envsubst < deploy_template.yaml > deploy.yaml
-else
-    REGISTRY=${REGISTRY} TAG=${TAG} REPLICAS_FRONTEND=2 REPLICAS_DEDICATED=2 REQUEST_MEMORY=200Mi REQUEST_CPU=500m \
-    LIMITS_MEMORY=200Mi LIMITS_CPU=500m BUFFER_SIZE=2 MIN_REPLICAS=0 MAX_REPLICAS=50 REPLICAS_MMF=2 \
-	envsubst < deploy_template.yaml > deploy.yaml
+    docker push ${REGISTRY}/${FRONTEND_IMG}:${TAG}
+    docker push ${REGISTRY}/${DEDICATED_IMG}:${TAG}
+    docker push ${REGISTRY}/${DIRECTOR_IMG}:${TAG}
+    docker push ${REGISTRY}/${MMF_IMG}:${TAG}
 fi

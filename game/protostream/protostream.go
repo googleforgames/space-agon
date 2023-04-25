@@ -15,8 +15,10 @@
 package protostream
 
 import (
-	"github.com/golang/protobuf/proto"
 	"io"
+
+	"google.golang.org/protobuf/encoding/protowire"
+	"google.golang.org/protobuf/proto"
 )
 
 type ReaderWriter interface {
@@ -37,13 +39,25 @@ func NewProtoStream(rw ReaderWriter) *ProtoStream {
 	}
 }
 
+func EncodeVarint(v uint64) []byte {
+	return protowire.AppendVarint(nil, v)
+}
+
+func DecodeVarint(b []byte) (uint64, int) {
+	v, n := protowire.ConsumeVarint(b)
+	if n < 0 {
+		return 0, 0
+	}
+	return v, n
+}
+
 func (p *ProtoStream) Send(m proto.Message) error {
 	b, err := proto.Marshal(m)
 	if err != nil {
 		return err
 	}
 
-	b = append(proto.EncodeVarint(uint64(len(b))), b...)
+	b = append(EncodeVarint(uint64(len(b))), b...)
 
 	_, err = p.rw.Write(b)
 	return err
@@ -53,7 +67,7 @@ func (p *ProtoStream) Recv(m proto.Message) error {
 	vLength := 0
 	mLength := uint64(0)
 	for {
-		mLength, vLength = proto.DecodeVarint(p.b[:p.read])
+		mLength, vLength = DecodeVarint(p.b[:p.read])
 		if vLength != 0 {
 			break
 		}

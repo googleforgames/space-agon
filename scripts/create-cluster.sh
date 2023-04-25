@@ -20,7 +20,7 @@ LOCATION=$3
 NETWORK=$4
 
 gcloud container clusters create space-agon \
-  --cluster-version=1.22 \
+  --cluster-version=1.24 \
   --tags=game-server \
   --scopes=gke-default \
   --network ${NETWORK} \
