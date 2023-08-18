@@ -86,7 +86,7 @@ make openmatch-install
 # Start minikube
 # ref: https://minikube.sigs.k8s.io/docs/commands/start/
 # Or you can other dirvers
-minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.23.17 --driver=hyperkit
+minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.24.16 --driver=hyperkit
 
 # Add Helm Repositories 
 make helm-repo-add
