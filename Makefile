@@ -33,7 +33,8 @@ MMF_IMG=space-agon-mmf
 AGONES_NS:=agones-system
 OM_NS:=open-match
 AGONES_VER:=1.29.0
-OM_VER:=1.7.0
+OM_VER:=1.8.0
+K8S_VERSION:=1.25
 
 #   _____                    _
 #  |_   _|_ _ _ __ __ _  ___| |_ ___
@@ -132,7 +133,11 @@ gcloud-test-cluster: GCP_CLUSTER_NODEPOOL_INITIALNODECOUNT ?= 4
 gcloud-test-cluster: GCP_CLUSTER_NODEPOOL_MACHINETYPE ?= e2-standard-4
 gcloud-test-cluster: NETWORK ?= default
 gcloud-test-cluster:
-	./scripts/create-cluster.sh ${GCP_CLUSTER_NODEPOOL_INITIALNODECOUNT} ${GCP_CLUSTER_NODEPOOL_MACHINETYPE} ${LOCATION} ${NETWORK}
+	./scripts/create-cluster.sh ${GCP_CLUSTER_NODEPOOL_INITIALNODECOUNT} \
+		${GCP_CLUSTER_NODEPOOL_MACHINETYPE} \
+		${LOCATION} \
+		${NETWORK} \
+		${K8S_VERSION}
 
 .PHONY: helm-repo-add
 helm-repo-add: 
