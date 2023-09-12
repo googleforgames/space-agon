@@ -18,9 +18,10 @@ GCP_CLUSTER_NODEPOOL_INITIALNODECOUNT=$1
 GCP_CLUSTER_NODEPOOL_MACHINETYPE=$2
 LOCATION=$3
 NETWORK=$4
+K8S_VERSION=$5
 
 gcloud container clusters create space-agon \
-  --cluster-version=1.24 \
+  --cluster-version=${K8S_VERSION} \
   --tags=game-server \
   --scopes=gke-default \
   --network ${NETWORK} \
