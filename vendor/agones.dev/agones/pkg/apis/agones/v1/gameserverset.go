@@ -17,8 +17,10 @@ package v1
 import (
 	"agones.dev/agones/pkg/apis"
 	"agones.dev/agones/pkg/apis/agones"
+	"agones.dev/agones/pkg/util/runtime"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 const (
@@ -57,8 +59,20 @@ type GameServerSetList struct {
 type GameServerSetSpec struct {
 	// Replicas are the number of GameServers that should be in this set
 	Replicas int32 `json:"replicas"`
+	// [Stage: Alpha]
+	// [FeatureFlag:FleetAllocationOverflow]
+	// Labels and Annotations to apply to GameServers when the number of Allocated GameServers drops below
+	// the desired replicas on the underlying `GameServerSet`
+	// +optional
+	AllocationOverflow *AllocationOverflow `json:"allocationOverflow,omitempty"`
 	// Scheduling strategy. Defaults to "Packed".
 	Scheduling apis.SchedulingStrategy `json:"scheduling,omitempty"`
+	// (Alpha, CountsAndLists feature flag) The first Priority on the array of Priorities is the most
+	// important for sorting. The Fleetautoscaler will use the first priority for sorting GameServers
+	// by total Capacity in the Fleet and acts as a tie-breaker after sorting the game servers by
+	// State and Strategy. Impacts scale down logic.
+	// +optional
+	Priorities []Priority `json:"priorities,omitempty"`
 	// Template the GameServer template to apply for this GameServerSet
 	Template GameServerTemplateSpec `json:"template"`
 }
@@ -80,39 +94,41 @@ type GameServerSetStatus struct {
 	// Players is the current total player capacity and count for this GameServerSet
 	// +optional
 	Players *AggregatedPlayerStatus `json:"players,omitempty"`
+	// (Alpha, CountsAndLists feature flag) Counters provides aggregated Counter capacity and Counter
+	// count for this GameServerSet.
+	// +optional
+	Counters map[string]AggregatedCounterStatus `json:"counters,omitempty"`
+	// (Alpha, CountsAndLists feature flag) Lists provides aggregated List capacity and List values
+	// for this GameServerSet.
+	// +optional
+	Lists map[string]AggregatedListStatus `json:"lists,omitempty"`
 }
 
 // ValidateUpdate validates when updates occur. The argument
 // is the new GameServerSet, being passed into the old GameServerSet
-func (gsSet *GameServerSet) ValidateUpdate(newGSS *GameServerSet) ([]metav1.StatusCause, bool) {
-	causes := validateName(newGSS)
+func (gsSet *GameServerSet) ValidateUpdate(newGSS *GameServerSet) field.ErrorList {
+	allErrs := validateName(newGSS, field.NewPath("metadata"))
 	if !apiequality.Semantic.DeepEqual(gsSet.Spec.Template, newGSS.Spec.Template) {
-		causes = append(causes, metav1.StatusCause{
-			Type:    metav1.CauseTypeFieldValueInvalid,
-			Field:   "template",
-			Message: "template values cannot be updated after creation",
-		})
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template"), gsSet.Spec.Template, "GameServerSet template cannot be updated"))
 	}
 
-	return causes, len(causes) == 0
+	return allErrs
 }
 
 // Validate validates when Create occurs. Check the name size
-func (gsSet *GameServerSet) Validate() ([]metav1.StatusCause, bool) {
-	causes := validateName(gsSet)
+func (gsSet *GameServerSet) Validate(apiHooks APIHooks) field.ErrorList {
+	allErrs := validateName(gsSet, field.NewPath("metadata"))
 
 	// check GameServer specification in a GameServerSet
-	gsCauses := validateGSSpec(gsSet)
-	if len(gsCauses) > 0 {
-		causes = append(causes, gsCauses...)
+	allErrs = append(allErrs, validateGSSpec(apiHooks, gsSet, field.NewPath("spec", "template", "spec"))...)
+	allErrs = append(allErrs, apiHooks.ValidateScheduling(gsSet.Spec.Scheduling, field.NewPath("spec", "scheduling"))...)
+
+	if gsSet.Spec.Priorities != nil && !runtime.FeatureEnabled(runtime.FeatureCountsAndLists) {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "priorities"), "FeatureCountsAndLists is not enabled"))
 	}
 
-	objMetaCauses := validateObjectMeta(&gsSet.Spec.Template.ObjectMeta)
-	if len(objMetaCauses) > 0 {
-		causes = append(causes, objMetaCauses...)
-	}
-
-	return causes, len(causes) == 0
+	allErrs = append(allErrs, validateObjectMeta(&gsSet.Spec.Template.ObjectMeta, field.NewPath("spec", "template", "metadata"))...)
+	return allErrs
 }
 
 // GetGameServerSpec get underlying GameServer specification

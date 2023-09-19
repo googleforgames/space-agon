@@ -66,9 +66,9 @@ deploy:
           dedicated.resources.limits.memory: "100Mi" 
           dedicated.resources.requests.cpu: "100m" 
           dedicated.resources.requests.memory: "100Mi" 
-          autoscaler.buffer.bufferSize: 1 
-          autoscaler.buffer.minReplicas: 0 
-          autoscaler.buffer.maxReplicas: 1
+          dedicated.autoscaler.buffer.bufferSize: 1 
+          dedicated.autoscaler.buffer.minReplicas: 0 
+          dedicated.autoscaler.buffer.maxReplicas: 1
 profiles:
   - name: cloud
     build:
@@ -100,6 +100,6 @@ profiles:
               dedicated.resources.limits.memory: "200Mi" 
               dedicated.resources.requests.cpu: "500m" 
               dedicated.resources.requests.memory: "200Mi" 
-              autoscaler.buffer.bufferSize: 2 
-              autoscaler.buffer.minReplicas: 0 
-              autoscaler.buffer.maxReplicas: 50 
+              dedicated.autoscaler.buffer.bufferSize: 2 
+              dedicated.autoscaler.buffer.minReplicas: 0 
+              dedicated.autoscaler.buffer.maxReplicas: 50 

@@ -28,41 +28,90 @@ const (
 	// FeatureGateFlag is a name of a command line flag, which turns on specific tests for FeatureGates
 	FeatureGateFlag = "feature-gates"
 
-	// FeatureExample is an example feature gate flag, used for testing and demonstrative purposes
-	FeatureExample Feature = "Example"
+	////////////////
+	// Beta features
 
-	// FeaturePlayerTracking is a feature flag to enable/disable player tracking features.
-	FeaturePlayerTracking Feature = "PlayerTracking"
+	// FeatureSplitControllerAndExtensions is a feature flag that will split agones-controller into two deployments
+	FeatureSplitControllerAndExtensions Feature = "SplitControllerAndExtensions"
 
-	// NodeExternalDNS is a feature flag to enable/disable node ExternalDNS and InternalDNS use as GameServer address
-	NodeExternalDNS Feature = "NodeExternalDNS"
-
-	// FeatureStateAllocationFilter is a feature flag that enables state filtering on Allocation.
-	FeatureStateAllocationFilter Feature = "StateAllocationFilter"
+	////////////////
+	// Alpha features
 
 	// FeaturePlayerAllocationFilter is a feature flag that enables the ability for Allocations to filter based on
 	// player capacity.
 	FeaturePlayerAllocationFilter Feature = "PlayerAllocationFilter"
 
-	// FeatureCustomFasSyncInterval is a feature flag that enables custom the FleetAutoscaler rsync interval
-	FeatureCustomFasSyncInterval Feature = "CustomFasSyncInterval"
+	// FeaturePlayerTracking is a feature flag to enable/disable player tracking features.
+	FeaturePlayerTracking Feature = "PlayerTracking"
 
-	// FeatureSDKGracefulTermination is a feature flag that enables SDK to support gracefulTermination
-	FeatureSDKGracefulTermination Feature = "SDKGracefulTermination"
+	// FeatureResetMetricsOnDelete is a feature flag that tells the metrics service to unregister and register
+	// relevant metric views to reset their state immediately when an Agones resource is deleted.
+	FeatureResetMetricsOnDelete Feature = "ResetMetricsOnDelete"
+
+	// FeaturePodHostname enables the Pod Hostname being assigned the name of the GameServer
+	FeaturePodHostname = "PodHostname"
+
+	// FeatureFleetAllocateOverflow enables setting labels and/or annotations on Allocated GameServers
+	// if the desired number of the underlying GameServerSet drops below the number of Allocated GameServers.
+	FeatureFleetAllocateOverflow = "FleetAllocationOverflow"
+
+	////////////////
+	// "Pre"-Alpha features
+
+	// FeatureCountsAndLists is a feature flag that enables/disables counts and lists feature
+	// (a generic implenetation of the player tracking feature).
+	FeatureCountsAndLists Feature = "CountsAndLists"
+
+	////////////////
+	// Example feature
+
+	// FeatureExample is an example feature gate flag, used for testing and demonstrative purposes
+	FeatureExample Feature = "Example"
 )
 
 var (
 	// featureDefaults is a map of all Feature Gates that are
 	// operational in Agones, and what their default configuration is.
-	// alpha features are disabled.
+	// alpha features are disabled by default; beta features are enabled.
+	//
+	// To add a new alpha feature:
+	// * add a const above
+	// * add it to `featureDefaults`
+	// * add it to install/helm/agones/defaultfeaturegates.yaml
+	// * add it to `ALPHA_FEATURE_GATES` in build/Makefile
+	// * add the inverse to the e2e-runner config in cloudbuild.yaml
+	// * add it to site/content/en/docs/Guides/feature-stages.md
+	//
+	// To promote a feature from alpha->beta:
+	// * move from `false` to `true` in `featureDefaults`.
+	// * move from `false` to `true` in install/helm/agones/defaultfeaturegates.yaml
+	// * remove from `ALPHA_FEATURE_GATES` in build/Makefile
+	// * invert in the e2e-runner config in cloudbuild.yaml
+	// * change the value in site/content/en/docs/Guides/feature-stages.md.
+	// * Ensure that the features in each file are organized alphabetically.
+	//
+	// To promote a feature from beta->GA:
+	// * remove all places consuming the feature gate and fold logic to true
+	//   * consider cleanup - often folding a gate to true allows refactoring
+	// * invert the "new alpha feature" steps above
+	//
+	// In each of these, keep the feature sorted by descending maturity then alphabetical
 	featureDefaults = map[Feature]bool{
-		FeatureExample:                true,
-		FeaturePlayerTracking:         false,
-		NodeExternalDNS:               true,
-		FeatureStateAllocationFilter:  false,
+		// Beta features
+		FeaturePodHostname:                  true,
+		FeatureResetMetricsOnDelete:         true,
+		FeatureSplitControllerAndExtensions: true,
+
+		// Alpha features
 		FeaturePlayerAllocationFilter: false,
-		FeatureCustomFasSyncInterval:  false,
-		FeatureSDKGracefulTermination: false,
+		FeaturePlayerTracking:         false,
+		FeatureFleetAllocateOverflow:  false,
+
+		// Pre-Alpha features
+		FeatureCountsAndLists: false,
+
+		// Example feature
+		FeatureExample: false,
 	}
 
 	// featureGates is the storage of what features are enabled
