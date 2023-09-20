@@ -32,7 +32,7 @@ MMF_IMG=space-agon-mmf
 
 AGONES_NS:=agones-system
 OM_NS:=open-match
-AGONES_VER:=1.29.0
+AGONES_VER:=1.34.0
 OM_VER:=1.8.0
 K8S_VERSION:=1.25
 
@@ -262,9 +262,9 @@ install:
 		--set dedicated.resources.limits.memory="200Mi" \
 		--set dedicated.resources.requests.cpu="500m" \
 		--set dedicated.resources.requests.memory="200Mi" \
-		--set autoscaler.buffer.bufferSize=2 \
-		--set autoscaler.buffer.minReplicas=0 \
-		--set autoscaler.buffer.maxReplicas=50 \
+		--set dedicated.autoscaler.buffer.bufferSize=2 \
+		--set dedicated.autoscaler.buffer.minReplicas=0 \
+		--set dedicated.autoscaler.buffer.maxReplicas=50 \
 		./install/helm/space-agon
 
 .PHONY: install-local
@@ -286,9 +286,9 @@ install-local:
 		--set dedicated.resources.limits.memory="100Mi" \
 		--set dedicated.resources.requests.cpu="100m" \
 		--set dedicated.resources.requests.memory="100Mi" \
-		--set autoscaler.buffer.bufferSize=1 \
-		--set autoscaler.buffer.minReplicas=0 \
-		--set autoscaler.buffer.maxReplicas=1 \
+		--set dedicated.autoscaler.buffer.bufferSize=1 \
+		--set dedicated.autoscaler.buffer.minReplicas=0 \
+		--set dedicated.autoscaler.buffer.maxReplicas=1 \
 		./install/helm/space-agon 
 
 # uninstall space-agon itself

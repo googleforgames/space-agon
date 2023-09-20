@@ -164,7 +164,6 @@ func (r Client) run() error {
 			return fmt.Errorf("error streaming response from backend.FetchMatches call: %w", err)
 		}
 		ctx := context.Background()
-		//gsa, err := agonesClient.AllocationV1().GameServerAllocations("default").Create(createAgonesGameServerAllocation())
 		gsa, err := agonesClient.AllocationV1().GameServerAllocations("default").Create(ctx, createAgonesGameServerAllocation(), metav1.CreateOptions{})
 		if err != nil {
 			return fmt.Errorf("error requesting allocation: %w", err)

@@ -18,9 +18,11 @@ import (
 	"agones.dev/agones/pkg"
 	"agones.dev/agones/pkg/apis"
 	"agones.dev/agones/pkg/apis/agones"
+	"agones.dev/agones/pkg/util/runtime"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 const (
@@ -57,10 +59,22 @@ type FleetList struct {
 type FleetSpec struct {
 	// Replicas are the number of GameServers that should be in this set. Defaults to 0.
 	Replicas int32 `json:"replicas"`
+	// [Stage: Alpha]
+	// [FeatureFlag:FleetAllocationOverflow]
+	// Labels and/or Annotations to apply to overflowing GameServers when the number of Allocated GameServers is more
+	// than the desired replicas on the underlying `GameServerSet`
+	// +optional
+	AllocationOverflow *AllocationOverflow `json:"allocationOverflow,omitempty"`
 	// Deployment strategy
 	Strategy appsv1.DeploymentStrategy `json:"strategy"`
 	// Scheduling strategy. Defaults to "Packed".
 	Scheduling apis.SchedulingStrategy `json:"scheduling"`
+	// (Alpha, CountsAndLists feature flag) The first Priority on the array of Priorities is the most
+	// important for sorting. The Fleetautoscaler will use the first priority for sorting GameServers
+	// by total Capacity in the Fleet and acts as a tie-breaker after sorting the game servers by
+	// State and Strategy. Impacts scale down logic.
+	// +optional
+	Priorities []Priority `json:"priorities,omitempty"`
 	// Template the GameServer template to apply for this Fleet
 	Template GameServerTemplateSpec `json:"template"`
 }
@@ -81,6 +95,14 @@ type FleetStatus struct {
 	// Players are the current total player capacity and count for this Fleet
 	// +optional
 	Players *AggregatedPlayerStatus `json:"players,omitempty"`
+	// (Alpha, CountsAndLists feature flag) Counters provides aggregated Counter capacity and Counter
+	// count for this Fleet.
+	// +optional
+	Counters map[string]AggregatedCounterStatus `json:"counters,omitempty"`
+	// (Alpha, CountsAndLists feature flag) Lists provides aggregated List capacityv and List values
+	// for this Fleet.
+	// +optional
+	Lists map[string]AggregatedListStatus `json:"lists,omitempty"`
 }
 
 // GameServerSet returns a single GameServerSet for this Fleet definition
@@ -109,6 +131,16 @@ func (f *Fleet) GameServerSet() *GameServerSet {
 	}
 
 	gsSet.ObjectMeta.Labels[FleetNameLabel] = f.ObjectMeta.Name
+
+	if runtime.FeatureEnabled(runtime.FeatureFleetAllocateOverflow) && f.Spec.AllocationOverflow != nil {
+		gsSet.Spec.AllocationOverflow = f.Spec.AllocationOverflow.DeepCopy()
+	}
+
+	if runtime.FeatureEnabled(runtime.FeatureCountsAndLists) && f.Spec.Priorities != nil {
+		// DeepCopy done manually here as f.Spec.Priorities does not have a DeepCopy() method.
+		gsSet.Spec.Priorities = make([]Priority, len(f.Spec.Priorities))
+		copy(gsSet.Spec.Priorities, f.Spec.Priorities)
+	}
 
 	return gsSet
 }
@@ -141,6 +173,7 @@ func (f *Fleet) ApplyDefaults() {
 		f.ObjectMeta.Annotations = make(map[string]string, 1)
 	}
 	f.ObjectMeta.Annotations[VersionAnnotation] = pkg.Version
+
 }
 
 // GetGameServerSpec get underlying Gameserver specification
@@ -148,54 +181,51 @@ func (f *Fleet) GetGameServerSpec() *GameServerSpec {
 	return &f.Spec.Template.Spec
 }
 
-func (f *Fleet) validateRollingUpdate(value *intstr.IntOrString, causes *[]metav1.StatusCause, parameter string) {
+func (f *Fleet) validateRollingUpdate(value *intstr.IntOrString, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 	r, err := intstr.GetValueFromIntOrPercent(value, 100, true)
 	if value.Type == intstr.String {
 		if err != nil || r < 1 || r > 99 {
-			*causes = append(*causes, metav1.StatusCause{
-				Type:    metav1.CauseTypeFieldValueInvalid,
-				Field:   parameter,
-				Message: parameter + " does not have a valid percentage value (1%-99%)",
-			})
+			allErrs = append(allErrs, field.Invalid(fldPath, value, "must be between 1% and 99%"))
 		}
-	} else {
-		if r < 1 {
-			*causes = append(*causes, metav1.StatusCause{
-				Type:    metav1.CauseTypeFieldValueInvalid,
-				Field:   parameter,
-				Message: parameter + " does not have a valid integer value (>1)",
-			})
-		}
+	} else if r < 1 {
+		allErrs = append(allErrs, field.Invalid(fldPath, value, "must be at least 1"))
 	}
+	return allErrs
 }
 
 // Validate validates the Fleet configuration.
 // If a Fleet is invalid there will be > 0 values in
 // the returned array
-func (f *Fleet) Validate() ([]metav1.StatusCause, bool) {
-	causes := validateName(f)
+func (f *Fleet) Validate(apiHooks APIHooks) field.ErrorList {
+	allErrs := validateName(f, field.NewPath("metadata"))
 
+	strategyPath := field.NewPath("spec", "strategy")
 	if f.Spec.Strategy.Type == appsv1.RollingUpdateDeploymentStrategyType {
-		f.validateRollingUpdate(f.Spec.Strategy.RollingUpdate.MaxUnavailable, &causes, "MaxUnavailable")
-		f.validateRollingUpdate(f.Spec.Strategy.RollingUpdate.MaxSurge, &causes, "MaxSurge")
+		allErrs = append(allErrs, f.validateRollingUpdate(f.Spec.Strategy.RollingUpdate.MaxUnavailable, strategyPath.Child("rollingUpdate", "maxUnavailable"))...)
+		allErrs = append(allErrs, f.validateRollingUpdate(f.Spec.Strategy.RollingUpdate.MaxSurge, strategyPath.Child("rollingUpdate", "maxSurge"))...)
 	} else if f.Spec.Strategy.Type != appsv1.RecreateDeploymentStrategyType {
-		causes = append(causes, metav1.StatusCause{
-			Type:    metav1.CauseTypeFieldValueInvalid,
-			Field:   "Type",
-			Message: "Strategy Type should be one of: RollingUpdate, Recreate.",
-		})
-	}
-	// check Gameserver specification in a Fleet
-	gsCauses := validateGSSpec(f)
-	if len(gsCauses) > 0 {
-		causes = append(causes, gsCauses...)
-	}
-	objMetaCauses := validateObjectMeta(&f.Spec.Template.ObjectMeta)
-	if len(objMetaCauses) > 0 {
-		causes = append(causes, objMetaCauses...)
+		allErrs = append(allErrs, field.NotSupported(strategyPath.Child("type"), f.Spec.Strategy.Type, []string{"RollingUpdate", "Recreate"}))
 	}
 
-	return causes, len(causes) == 0
+	// check Gameserver specification in a Fleet
+	allErrs = append(allErrs, validateGSSpec(apiHooks, f, field.NewPath("spec", "template", "spec"))...)
+	allErrs = append(allErrs, apiHooks.ValidateScheduling(f.Spec.Scheduling, field.NewPath("spec", "scheduling"))...)
+	allErrs = append(allErrs, validateObjectMeta(&f.Spec.Template.ObjectMeta, field.NewPath("spec", "template", "metadata"))...)
+
+	if f.Spec.AllocationOverflow != nil {
+		if runtime.FeatureEnabled(runtime.FeatureFleetAllocateOverflow) {
+			allErrs = append(allErrs, f.Spec.AllocationOverflow.Validate(field.NewPath("spec", "allocationOverflow"))...)
+		} else {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "allocationOverflow"), "Allocation Overflow is not enabled"))
+		}
+	}
+
+	if f.Spec.Priorities != nil && !runtime.FeatureEnabled(runtime.FeatureCountsAndLists) {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "priorities"), "FeatureCountsAndLists is not enabled"))
+	}
+
+	return allErrs
 }
 
 // UpperBoundReplicas returns whichever is smaller,
@@ -214,6 +244,21 @@ func (f *Fleet) LowerBoundReplicas(i int32) int32 {
 		return 0
 	}
 	return i
+}
+
+// SumGameServerSets calculates a total from the value returned from the passed in function.
+// Useful for calculating totals based on status value(s), such as gsSet.Status.Replicas
+// This should eventually replace the variety of `Sum*` and `GetReadyReplicaCountForGameServerSets` functions as this is
+// a higher and more flexible abstraction.
+func SumGameServerSets(list []*GameServerSet, f func(gsSet *GameServerSet) int32) int32 {
+	var total int32
+	for _, gsSet := range list {
+		if gsSet != nil {
+			total += f(gsSet)
+		}
+	}
+
+	return total
 }
 
 // SumStatusAllocatedReplicas returns the total number of

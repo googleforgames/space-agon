@@ -29,10 +29,10 @@ if [ ${ENV} = "test" ] ;then
 fi
 
 # Build images
-docker build -f ./Frontend.Dockerfile -t "${REGISTRY}/${FRONTEND_IMG}:${TAG}" .
-docker build -f ./Dedicated.Dockerfile -t "${REGISTRY}/${DEDICATED_IMG}:${TAG}" .
-docker build -f ./Director.Dockerfile -t "${REGISTRY}/${DIRECTOR_IMG}:${TAG}" .
-docker build -f ./Mmf.Dockerfile -t "${REGISTRY}/${MMF_IMG}:${TAG}" .
+docker build --no-cache -f ./Frontend.Dockerfile -t "${REGISTRY}/${FRONTEND_IMG}:${TAG}" .
+docker build --no-cache -f ./Dedicated.Dockerfile -t "${REGISTRY}/${DEDICATED_IMG}:${TAG}" .
+docker build --no-cache -f ./Director.Dockerfile -t "${REGISTRY}/${DIRECTOR_IMG}:${TAG}" .
+docker build --no-cache -f ./Mmf.Dockerfile -t "${REGISTRY}/${MMF_IMG}:${TAG}" .
 
 # Push images
 if [ ${ENV} = "develop" ];then
