@@ -36,6 +36,12 @@ jobs:
     - name: Unit test
       run: make test
   integration-test:
+    strategy:
+        matrix:
+          k8s_version:
+            - "v1.25.13"
+            - "v1.26.9"
+            - "v1.27.6"
     runs-on: ubuntu-latest
     steps:
       - name: Pull repo
@@ -44,7 +50,7 @@ jobs:
         uses: medyagh/setup-minikube@master
         id: space-agon
         with:
-          kubernetes-version: v1.25.13
+          kubernetes-version: ${{ matrix.k8s_version }}
           cpus: 2
           memory: 4096m
       - name: Install helm
