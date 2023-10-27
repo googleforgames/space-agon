@@ -24,8 +24,8 @@ Install tools in your dev environment:
 - [docker](https://www.docker.com/)
 - [kubectl](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_kubectl)
 - [helm](https://helm.sh/)
-- [envsubst](https://linux.die.net/man/1/envsubst) (Optional)
 - [skaffold](https://skaffold.dev/) (Optional)
+- [envsubst](https://linux.die.net/man/1/envsubst)
 - [minikube](https://minikube.sigs.k8s.io/docs/start/) (Optional)
 - [hyperkit](https://github.com/moby/hyperkit) (Optional)
 
@@ -86,7 +86,7 @@ make openmatch-install
 # Start minikube
 # ref: https://minikube.sigs.k8s.io/docs/commands/start/
 # Or you can other dirvers
-minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.24.16 --driver=hyperkit
+minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.25.15 --driver=hyperkit
 
 # Add Helm Repositories 
 make helm-repo-add
