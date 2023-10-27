@@ -25,6 +25,7 @@ Install tools in your dev environment:
 - [kubectl](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_kubectl)
 - [helm](https://helm.sh/)
 - [skaffold](https://skaffold.dev/) (Optional)
+- [envsubst](https://linux.die.net/man/1/envsubst)
 - [minikube](https://minikube.sigs.k8s.io/docs/start/) (Optional)
 - [hyperkit](https://github.com/moby/hyperkit) (Optional)
 
