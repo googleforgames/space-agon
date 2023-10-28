@@ -14,7 +14,7 @@ module github.com/googleforgames/space-agon
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-go 1.20
+go 1.21
 
 require (
 	agones.dev/agones v1.35.0
