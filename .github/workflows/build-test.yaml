@@ -39,10 +39,9 @@ jobs:
     strategy:
         matrix:
           k8s_version:
-            - "v1.25.15"
-            - "v1.26.10"
-            - "v1.27.7"
-            - "v1.28.3"
+            - "v1.26.11"
+            - "v1.27.8"
+            - "v1.28.4"
     runs-on: ubuntu-latest
     steps:
       - name: Pull repo
