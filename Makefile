@@ -32,9 +32,9 @@ MMF_IMG=space-agon-mmf
 
 AGONES_NS:=agones-system
 OM_NS:=open-match
-AGONES_VER:=1.35.0
-OM_VER:=1.8.0
-K8S_VERSION:=1.25
+AGONES_VER:=1.36.0
+OM_VER:=1.8.1
+K8S_VERSION:=1.27
 
 #   _____                    _
 #  |_   _|_ _ _ __ __ _  ___| |_ ___
