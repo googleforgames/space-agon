@@ -157,7 +157,9 @@ agones-install-local:
 		--create-namespace $(AGONES_NS)/agones \
 		--version $(AGONES_VER) \
 		--set agones.ping.install=false \
-		--set agones.allocator.replicas="1"
+		--set agones.controller.replicas=1 \
+		--set agones.extensions.replicas=1 \
+		--set agones.allocator.replicas=0
 
 # install agones
 .PHONY: agones-install
@@ -191,9 +193,7 @@ openmatch-install-local:
 	--set query.replicas=1 \
 	--set frontend.replicas=1 \
 	--set backend.replicas=1 \
-	--set redis.sentinel.enabled=false \
 	--set redis.master.resources.requests.cpu=0.1 \
-	--set redis.master.persistence.enabled=false \
 	--set redis.replica.replicaCount=0 \
 	--set redis.metrics.enabled=false
 
