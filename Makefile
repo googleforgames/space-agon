@@ -304,7 +304,7 @@ upgrade:
 # unit test
 .PHONY: test
 test:
-	go test ./frontend/ ./mmf/ ./director/ ./dedicated/
+	go test ./frontend/ ./mmf/ ./director/ ./dedicated/ ./game/protostream/
 
 # integration test
 .PHONY: integration-test
