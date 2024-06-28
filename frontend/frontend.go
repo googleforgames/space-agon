@@ -119,14 +119,19 @@ func streamAssignments(ctx context.Context, assignments chan *pb.Assignment, err
 		errs <- fmt.Errorf("error getting assignment stream: %w", err)
 		return
 	}
-	for {
+
+	var assignment *pb.Assignment
+	for assignment.GetConnection() == "" {
 		resp, err := stream.Recv()
 		if err != nil {
 			errs <- fmt.Errorf("error streaming assignment: %w", err)
 			return
 		}
-		assignments <- resp.Assignment
+		assignment = resp.Assignment
 	}
+
+	assignments <- assignment
+	log.Printf("Got assignment: %v", assignment)
 }
 
 func connectFrontendServer() (*grpc.ClientConn, error) {
