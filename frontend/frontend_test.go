@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	pb2 "github.com/googleforgames/open-match2/v2/pkg/pb"
 	"github.com/googleforgames/space-agon/game/protostream"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/websocket"
@@ -101,7 +102,7 @@ func TestMatchmake(t *testing.T) {
 }
 
 func TestStreamAssignments(t *testing.T) {
-	ch := make(chan *ompb.Assignment)
+	ch := make(chan *pb2.Assignment)
 	defer close(ch)
 	errs := make(chan error)
 	defer close(errs)

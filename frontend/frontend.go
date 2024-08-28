@@ -21,15 +21,15 @@ import (
 	"net/http"
 	"os"
 
+	pb2 "github.com/googleforgames/open-match2/v2/pkg/pb"
 	"github.com/googleforgames/space-agon/game/protostream"
 	"golang.org/x/net/websocket"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 const (
-	defaultFrontendAddress = "open-match-frontend.open-match.svc.cluster.local:50504"
+	defaultFrontendAddress = "https://om-core-976869741551.asia-northeast1.run.app:443"
 )
 
 func main() {
@@ -57,7 +57,7 @@ func matchmake(ws *websocket.Conn) {
 
 	ctx, cancel := context.WithCancel(ws.Request().Context())
 	defer cancel()
-	assignments := make(chan *pb.Assignment)
+	assignments := make(chan *pb2.Assignment)
 	errs := make(chan error)
 
 	go streamAssignments(ctx, assignments, errs)
@@ -83,44 +83,55 @@ func matchmake(ws *websocket.Conn) {
 	}
 }
 
-func streamAssignments(ctx context.Context, assignments chan *pb.Assignment, errs chan error) {
+func streamAssignments(ctx context.Context, assignments chan *pb2.Assignment, errs chan error) {
+	log.Println("streaming assignments...")
 	conn, err := connectFrontendServer()
 	if err != nil {
 		errs <- err
 	}
 	defer conn.Close()
-	fe := pb.NewFrontendServiceClient(conn)
+	fe := pb2.NewOpenMatchServiceClient(conn)
 
 	var ticketId string
-	crReq := &pb.CreateTicketRequest{
-		Ticket: &pb.Ticket{},
+	crReq := &pb2.CreateTicketRequest{
+		Ticket: &pb2.Ticket{},
 	}
 
+	log.Println("creating a ticket vvvv...")
 	resp, err := fe.CreateTicket(ctx, crReq)
 	if err != nil {
 		errs <- fmt.Errorf("error creating open match ticket: %w", err)
 		return
 	}
-	ticketId = resp.Id
+	if resp == nil {
+		errs <- fmt.Errorf("create ticket resp is nullptr: %w", err)
+		return
+	}
+	ticketId = resp.TicketId
+	log.Println("ticket created, ticket id is: ", ticketId)
 
-	defer func() {
-		_, err = fe.DeleteTicket(context.Background(), &pb.DeleteTicketRequest{TicketId: ticketId})
-		if err != nil {
-			log.Println("Error deleting ticket", ticketId, ":", err)
-		}
-	}()
+	log.Println("activating a ticket: ", ticketId)
+	acReq := &pb2.ActivateTicketsRequest{
+		TicketIds: []string{ticketId},
+	}
+	if _, err := fe.ActivateTickets(ctx, acReq); err != nil {
+		errs <- fmt.Errorf("error activating open match ticket: %w", err)
+		return
+	}
+	log.Println("ticket activated: ", ticketId)
 
-	waReq := &pb.WatchAssignmentsRequest{
-		TicketId: ticketId,
+	waReq := &pb2.WatchAssignmentsRequest{
+		TicketIds: []string{ticketId},
 	}
 
+	log.Println("watching assignments: ", waReq)
 	stream, err := fe.WatchAssignments(ctx, waReq)
 	if err != nil {
 		errs <- fmt.Errorf("error getting assignment stream: %w", err)
 		return
 	}
 
-	var assignment *pb.Assignment
+	var assignment *pb2.Assignment
 	for assignment.GetConnection() == "" {
 		resp, err := stream.Recv()
 		if err != nil {
@@ -139,7 +150,12 @@ func connectFrontendServer() (*grpc.ClientConn, error) {
 	if frontendAddr == "" {
 		frontendAddr = defaultFrontendAddress
 	}
-	conn, err := grpc.Dial(frontendAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// conn, err := grpc.Dial(frontendAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// auth, _ := oauth.NewApplicationDefault(context.Background(), "")
+	conn, err := grpc.Dial(
+		frontendAddr,
+		grpc.WithAuthority(frontendAddr),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("error dialing open match: %w", err)
 	}

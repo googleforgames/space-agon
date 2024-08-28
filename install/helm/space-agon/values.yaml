@@ -21,7 +21,7 @@ frontend:
   image: 
     repository: local/space-agon-frontend
     tag: TAG
-    imagePullPolicy: IfNotPresent
+    imagePullPolicy: Always
 
 mmf:
   name: mmf
@@ -32,7 +32,7 @@ mmf:
   image: 
     repository: local/space-agon-mmf
     tag: TAG
-  imagePullPolicy: IfNotPresent
+  imagePullPolicy: Always
 
 director:
   name: director
@@ -41,7 +41,7 @@ director:
   image: 
     repository: local/space-agon-director
     tag: TAG
-  imagePullPolicy: IfNotPresent
+  imagePullPolicy: Always
 
 dedicated:
   name: dedicated
@@ -51,7 +51,7 @@ dedicated:
   image: 
     repository: local/space-agon-dedicated
     tag: TAG
-  imagePullPolicy: IfNotPresent
+  imagePullPolicy: Always
   portPolicy: Dynamic
   resources:
     limits:
