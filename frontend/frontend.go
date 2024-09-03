@@ -21,15 +21,19 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/spf13/viper"
+
 	pb2 "github.com/googleforgames/open-match2/v2/pkg/pb"
 	"github.com/googleforgames/space-agon/game/protostream"
+	"github.com/googleforgames/space-agon/logging"
+	"github.com/googleforgames/space-agon/omclient"
 	"golang.org/x/net/websocket"
 	"google.golang.org/grpc"
 	"open-match.dev/open-match/pkg/pb"
 )
 
 const (
-	defaultFrontendAddress = "https://om-core-976869741551.asia-northeast1.run.app:443"
+	defaultFrontendAddress = "https://om-core-976869741551.asia-northeast1.run.app"
 )
 
 func main() {
@@ -84,62 +88,80 @@ func matchmake(ws *websocket.Conn) {
 }
 
 func streamAssignments(ctx context.Context, assignments chan *pb2.Assignment, errs chan error) {
-	log.Println("streaming assignments...")
-	conn, err := connectFrontendServer()
-	if err != nil {
-		errs <- err
-	}
-	defer conn.Close()
-	fe := pb2.NewOpenMatchServiceClient(conn)
+	log.Println("streaming assignments 123123...")
+	// conn, err := connectFrontendServer()
+	// if err != nil {
+	// 	errs <- err
+	// }
+	// defer conn.Close()
+	// fe := pb2.NewOpenMatchServiceClient(conn)
 
-	var ticketId string
-	crReq := &pb2.CreateTicketRequest{
-		Ticket: &pb2.Ticket{},
+	// Read config
+	cfg := viper.New()
+	cfg.SetDefault("OM_CORE_ADDR", defaultFrontendAddress)
+	cfg.SetDefault("OM_CORE_MAX_UPDATES_PER_ACTIVATION_CALL", 500)
+	cfg.SetDefault("MAX_CONCURRENT_TICKET_CREATIONS", 20)
+	cfg.SetDefault("PORT", 8081)
+
+	// Override these with env vars when doing local development.
+	// Suggested values in that case are "text", "debug", and "false",
+	// respectively
+	cfg.SetDefault("LOGGING_FORMAT", "json")
+	cfg.SetDefault("LOGGING_LEVEL", "trace")
+	cfg.SetDefault("LOG_CALLER", "false")
+
+	// Read overrides from env vars
+	cfg.AutomaticEnv()
+
+	// initialize shared structured logging
+	log := logging.NewSharedLogger(cfg)
+
+	OmClient := &omclient.RestfulOMGrpcClient{
+		Client: &http.Client{},
+		Cfg:    cfg,
+		Log:    log,
 	}
 
-	log.Println("creating a ticket vvvv...")
-	resp, err := fe.CreateTicket(ctx, crReq)
+	log.Println("creating a ticket 02...")
+	ticketId, err := OmClient.CreateTicket(ctx, &pb2.Ticket{})
 	if err != nil {
 		errs <- fmt.Errorf("error creating open match ticket: %w", err)
 		return
 	}
-	if resp == nil {
-		errs <- fmt.Errorf("create ticket resp is nullptr: %w", err)
-		return
-	}
-	ticketId = resp.TicketId
-	log.Println("ticket created, ticket id is: ", ticketId)
 
+	log.Println("ticket created, ticket id is: ", ticketId)
 	log.Println("activating a ticket: ", ticketId)
-	acReq := &pb2.ActivateTicketsRequest{
-		TicketIds: []string{ticketId},
-	}
-	if _, err := fe.ActivateTickets(ctx, acReq); err != nil {
-		errs <- fmt.Errorf("error activating open match ticket: %w", err)
-		return
-	}
-	log.Println("ticket activated: ", ticketId)
+
+	ticketIdsToActivate := make(chan string)
+
+	go func() {
+		OmClient.ActivateTickets(ctx, ticketIdsToActivate)
+	}()
+
+	ticketIdsToActivate <- ticketId
+
+	log.Println("ticketid send to ticketIdsToActivate: ", ticketId)
 
 	waReq := &pb2.WatchAssignmentsRequest{
 		TicketIds: []string{ticketId},
 	}
 
 	log.Println("watching assignments: ", waReq)
-	stream, err := fe.WatchAssignments(ctx, waReq)
-	if err != nil {
-		errs <- fmt.Errorf("error getting assignment stream: %w", err)
-		return
-	}
+	// stream, err := fe.WatchAssignments(ctx, waReq)
+	// if err != nil {
+	// 	errs <- fmt.Errorf("error getting assignment stream: %w", err)
+	// 	return
+	// }
 
 	var assignment *pb2.Assignment
-	for assignment.GetConnection() == "" {
-		resp, err := stream.Recv()
-		if err != nil {
-			errs <- fmt.Errorf("error streaming assignment: %w", err)
-			return
-		}
-		assignment = resp.Assignment
-	}
+	// for assignment.GetConnection() == "" {
+	// 	resp, err := stream.Recv()
+	// 	if err != nil {
+	// 		errs <- fmt.Errorf("error streaming assignment: %w", err)
+	// 		return
+	// 	}
+	// 	assignment = resp.Assignment
+	// }
 
 	assignments <- assignment
 	log.Printf("Got assignment: %v", assignment)

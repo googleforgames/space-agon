@@ -24,6 +24,8 @@ RUN mkdir /app
 COPY frontend ./frontend
 COPY game ./game
 COPY client ./client
+COPY omclient ./omclient
+COPY logging ./logging
 COPY static /app/static
 RUN CGO_ENABLED=0 go build -installsuffix cgo -o /app/frontend github.com/googleforgames/space-agon/frontend
 RUN GOOS=js GOARCH=wasm go build -o /app/static/client.wasm github.com/googleforgames/space-agon/client
