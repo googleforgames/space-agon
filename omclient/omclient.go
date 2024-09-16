@@ -19,7 +19,6 @@ package omclient
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -87,7 +86,7 @@ func CreateOMClient() *RestfulOMGrpcClient {
 // Match core on the client's behalf to make a matchmaking ticket. In this sense,
 // your platform services layer acts as a 'proxy' for the player's game client
 // from the viewpoint of Open Match.
-func (rc *RestfulOMGrpcClient) CreateTicket(ctx context.Context, ticket *pb.Ticket) (string, error) {
+func (rc *RestfulOMGrpcClient) CreateTicket(ticket *pb.Ticket) (string, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -95,9 +94,6 @@ func (rc *RestfulOMGrpcClient) CreateTicket(ctx context.Context, ticket *pb.Tick
 		"component": "open_match_client",
 		"operation": "proxy_CreateTicket",
 	})
-
-	// Update metrics
-	//createdTicketCounter.Add(ctx, 1)
 
 	// Put the ticket into open match CreateTicket request protobuf message.
 	reqPb := &pb.CreateTicketRequest{Ticket: ticket}
@@ -166,13 +162,6 @@ func (rc *RestfulOMGrpcClient) CreateTicket(ctx context.Context, ticket *pb.Tick
 			"pb_message":    "CreateTicketsResponse",
 			"error":         err,
 		}).Errorf("cannot unmarshal http response body back into protobuf")
-		return "", err
-	}
-
-	if resPb == nil {
-		// Mark as a permanent error so the backoff library doesn't retry this REST call
-		err := backoff.Permanent(errors.New("CreateTicket returned empty result"))
-		logger.Error(err)
 		return "", err
 	}
 
@@ -266,13 +255,13 @@ func (rc *RestfulOMGrpcClient) ActivateTickets(ctx context.Context, ticketIdsToA
 					if err != nil {
 						logger.WithFields(logrus.Fields{
 							"caller": callerFromContext,
-						}).Errorf("ActivateTickets attempt failed: %w", err)
+						}).Errorf("ActivateTickets attempt failed: %v", err)
 
 						return err
 					} else if resp != nil && resp.StatusCode != http.StatusOK { // HTTP error code
 						logger.WithFields(logrus.Fields{
 							"caller": callerFromContext,
-						}).Errorf("ActivateTickets attempt failed: %w", fmt.Errorf("%s (%d)", http.StatusText(resp.StatusCode), resp.StatusCode))
+						}).Errorf("ActivateTickets attempt failed: %v", fmt.Errorf("%s (%d)", http.StatusText(resp.StatusCode), resp.StatusCode))
 						return fmt.Errorf("%s (%d)", http.StatusText(resp.StatusCode), resp.StatusCode)
 					}
 					return nil
@@ -289,7 +278,7 @@ func (rc *RestfulOMGrpcClient) ActivateTickets(ctx context.Context, ticketIdsToA
 				if err != nil {
 					logger.WithFields(logrus.Fields{
 						"caller": callerFromContext,
-					}).Errorf("ActivateTickets failed: %w", err)
+					}).Errorf("ActivateTickets failed: %v", err)
 				}
 				logger.WithFields(logrus.Fields{
 					"caller": callerFromContext,
@@ -382,11 +371,6 @@ func (rc *RestfulOMGrpcClient) InvokeMatchmakingFunctions(ctx context.Context, r
 				logger.Trace("Successfully unmarshalled HTTP response JSON body back into StreamedMmfResponse protobuf message")
 			}
 
-			if resPb == nil {
-				logger.Trace("StreamedMmfResponse protobuf was nil!")
-				continue // Loop again to get the next streamed response
-			}
-
 			// Send back the streamed responses as we get them
 			logger.Trace("StreamedMmfResponse protobuf exists")
 			respChan <- resPb
@@ -477,11 +461,6 @@ func (rc *RestfulOMGrpcClient) WatchAssignments(ctx context.Context, reqPb *pb.W
 				logger.Trace("Successfully unmarshalled HTTP response JSON body back into StreamedWatchAssignmentsResponse protobuf message")
 			}
 
-			if resPb == nil {
-				logger.Trace("StreamedWatchAssignmentsResponse protobuf was nil!")
-				continue // Loop again to get the next streamed response
-			}
-
 			// Send back the streamed responses as we get them
 			logger.Trace("StreamedWatchAssignmentsResponse protobuf exists")
 			respChan <- resPb
@@ -493,7 +472,7 @@ func (rc *RestfulOMGrpcClient) WatchAssignments(ctx context.Context, reqPb *pb.W
 	}
 }
 
-func (rc *RestfulOMGrpcClient) CreateAssignments(ctx context.Context, reqPb *pb.CreateAssignmentsRequest) (*pb.CreateAssignmentsResponse, error) {
+func (rc *RestfulOMGrpcClient) CreateAssignments(reqPb *pb.CreateAssignmentsRequest) (*pb.CreateAssignmentsResponse, error) {
 	fmt.Println("Entering CreateAssignments")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -576,39 +555,10 @@ func (rc *RestfulOMGrpcClient) CreateAssignments(ctx context.Context, reqPb *pb.
 		return resPb, err
 	}
 
-	if resPb == nil {
-		// Mark as a permanent error so the backoff library doesn't retry this REST call
-		err := backoff.Permanent(errors.New("CreateAssignments returned empty result"))
-		logger.Error(err)
-		return resPb, err
-	}
-
 	// Successful ticket creation
 	logger.Debugf("CreateAssignments %v complete", resPb)
 	return resPb, err
 }
-
-// type idTokenSource struct {
-// 	TokenSource oauth2.TokenSource
-// }
-
-// func (s *idTokenSource) Token() (*oauth2.Token, error) {
-// 	token, err := s.TokenSource.Token()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	idToken, ok := token.Extra("id_token").(string)
-// 	if !ok {
-// 		return nil, fmt.Errorf("token did not contain an id_token")
-// 	}
-
-// 	return &oauth2.Token{
-// 		AccessToken: idToken,
-// 		TokenType:   "Bearer",
-// 		Expiry:      token.Expiry,
-// 	}, nil
-// }
 
 // Post Makes an HTTP request at the given url+path, marshalling the
 // provided protobuf in the pbReq argument into the HTTP request JSON body (for
@@ -692,13 +642,4 @@ func readAllBody(resp http.Response, logger *logrus.Entry) ([]byte, error) {
 	}
 
 	return body, err
-}
-
-func syncMapDump(sm *sync.Map) map[string]interface{} {
-	out := map[string]interface{}{}
-	sm.Range(func(key, value interface{}) bool {
-		out[fmt.Sprint(key)] = value
-		return true
-	})
-	return out
 }

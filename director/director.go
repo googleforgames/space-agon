@@ -152,7 +152,7 @@ func (r Client) run() error {
 
 		fmt.Println("The game server is allocated, assigning tickets")
 
-		if _, err = r.OmClient.CreateAssignments(context.Background(), createOMAssignTicketRequest(resp.GetMatch(), gsa)); err != nil {
+		if _, err = r.OmClient.CreateAssignments(createOMAssignTicketRequest(resp.GetMatch(), gsa)); err != nil {
 			// Corner case where we allocated a game server for players who left the queue after some waiting time.
 			// Note that we may still leak some game servers when tickets got assigned but players left the queue before game frontend announced the assignments.
 			if err = agonesClient.AgonesV1().GameServers("default").Delete(ctx, gsa.Status.GameServerName, metav1.DeleteOptions{}); err != nil {

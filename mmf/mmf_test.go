@@ -36,15 +36,14 @@ func TestNewMatches(t *testing.T) {
 			&pb2.Ticket{Id: "ticket-2"},
 		},
 	}
-	matches, err := makeMatches(poolTickets)
+	matches, err := makeMatches(profile, poolTickets)
 	if err != nil {
 		t.Errorf("Create new match proposal failed: %v", err)
 	}
 
 	assert.NoError(t, err)
 	assert.Len(t, matches, 1)
-	// assert.Len(t, matches[0].Tickets, len(poolTickets[pool.Name]))
+	assert.Len(t, matches[0].Rosters[pool.Name].Tickets, len(poolTickets[pool.Name]))
 	assert.Contains(t, matches[0].Id, "profile-"+profile.Name+"-time")
-	// assert.Equal(t, matches[0].MatchProfile, profile.Name)
-	// assert.Equal(t, matches[0].MatchFunction, matchName)
+	assert.Equal(t, profile.Name, matches[0].Rosters[pool.Name].Name)
 }

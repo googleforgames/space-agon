@@ -82,7 +82,7 @@ func streamAssignments(ctx context.Context, assignments chan *pb2.Assignment, er
 	omClient := omclient.CreateOMClient()
 
 	log.Println("creating a ticket 02...")
-	ticketId, err := omClient.CreateTicket(ctx, &pb2.Ticket{})
+	ticketId, err := omClient.CreateTicket(&pb2.Ticket{})
 	if err != nil {
 		errs <- fmt.Errorf("error creating open match ticket: %w", err)
 		return

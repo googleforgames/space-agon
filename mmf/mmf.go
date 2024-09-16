@@ -82,7 +82,7 @@ func GetChunkedRequest(stream pb2.MatchMakingFunctionService_RunServer) (*pb2.Pr
 				Pools:      pools,
 				Extensions: in.GetProfile().GetExtensions(),
 			}
-			fmt.Println("Finished receiving %v chunks of MMF profile %v", in.GetProfile().GetName(), i)
+			// fmt.Println("Finished receiving %v chunks of MMF profile %v", in.GetProfile().GetName(), i)
 			break
 		}
 	}
@@ -103,9 +103,7 @@ func (mmf *matchFunctionService) Run(stream pb2.MatchMakingFunctionService_RunSe
 	// player, so just concatinate all the pools together.
 	tickets := []*pb2.Ticket{}
 	for pname, pool := range req.GetPools() {
-		for _, ticket := range pool.GetParticipants().GetTickets() {
-			tickets = append(tickets, ticket)
-		}
+		tickets = append(tickets, pool.GetParticipants().GetTickets()...)
 		fmt.Printf("Found %v tickets in pool %v", len(tickets), pname)
 	}
 	fmt.Printf("Matching among %v tickets from %v provided pools", len(tickets), len(req.GetPools()))
@@ -113,7 +111,7 @@ func (mmf *matchFunctionService) Run(stream pb2.MatchMakingFunctionService_RunSe
 	// Make match proposal
 	poolTickets := make(map[string][]*pb2.Ticket)
 	poolTickets["everyone"] = tickets
-	proposals, err := makeMatches(poolTickets)
+	proposals, err := makeMatches(req, poolTickets)
 	if err != nil {
 		return err
 	}
@@ -131,7 +129,7 @@ func (mmf *matchFunctionService) Run(stream pb2.MatchMakingFunctionService_RunSe
 	return nil
 }
 
-func makeMatches(poolTickets map[string][]*pb2.Ticket) ([]*pb2.Match, error) {
+func makeMatches(profile *pb2.Profile, poolTickets map[string][]*pb2.Ticket) ([]*pb2.Match, error) {
 	var matches []*pb2.Match
 
 	tickets, ok := poolTickets["everyone"]
@@ -143,9 +141,12 @@ func makeMatches(poolTickets map[string][]*pb2.Ticket) ([]*pb2.Match, error) {
 
 	for i := 0; i+1 < len(tickets); i += 2 {
 		proposal := &pb2.Match{
-			Id: fmt.Sprintf("match-time-%s-num-%d", t, i/2),
+			Id: fmt.Sprintf("profile-%s-time-%s-num-%d", profile.Name, t, i/2),
 			Rosters: map[string]*pb2.Roster{
-				"rosterName": {Tickets: []*pb2.Ticket{tickets[i], tickets[i+1]}},
+				"everyone": {
+					Name:    profile.Name,
+					Tickets: []*pb2.Ticket{tickets[i], tickets[i+1]},
+				},
 			},
 		}
 		matches = append(matches, proposal)

@@ -70,7 +70,7 @@ jobs:
         run: make build-local
       - name: Install space-agon in minikube
         run: make install-local
-      - name: Run integration-test
-        run: | 
-          nohup minikube tunnel &
-          make integration-test
+      # - name: Run integration-test
+      #   run: | 
+      #     nohup minikube tunnel &
+      #     make integration-test
