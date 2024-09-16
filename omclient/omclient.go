@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"strings"
 	"sync"
@@ -29,6 +30,7 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 	pb "github.com/googleforgames/open-match2/v2/pkg/pb"
+	"github.com/googleforgames/space-agon/logging"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
@@ -41,6 +43,39 @@ type RestfulOMGrpcClient struct {
 	Log         *logrus.Logger
 	Cfg         *viper.Viper
 	tokenSource oauth2.TokenSource
+}
+
+func CreateOMClient() *RestfulOMGrpcClient {
+	// Connection config.
+	cfg := viper.New()
+	cfg.SetDefault("OM_CORE_ADDR", "https://om-core-976869741551.us-central1.run.app")
+
+	// OM core config that the matchmaker needs to respect
+	cfg.SetDefault("OM_CORE_MAX_UPDATES_PER_ACTIVATION_CALL", 500)
+
+	// InvokeMatchmaking Function config
+	cfg.SetDefault("NUM_MM_CYCLES", math.MaxInt32)                   // Default is essentially forever
+	cfg.SetDefault("NUM_CONSECUTIVE_EMPTY_MM_CYCLES_BEFORE_QUIT", 3) // Exit if 3 matchmaking cycles come back empty
+
+	// Override these with env vars when doing local development.
+	// Suggested values in that case are "text", "debug", and "false",
+	// respectively
+	cfg.SetDefault("LOGGING_FORMAT", "json")
+	cfg.SetDefault("LOGGING_LEVEL", "debug")
+	cfg.SetDefault("LOG_CALLER", "false")
+
+	// Read overrides from env vars
+	cfg.AutomaticEnv()
+
+	// Set up structured logging
+	// Default logging configuration is json that plays nicely with Google Cloud Run.
+	log := logging.NewSharedLogger(cfg)
+
+	return &RestfulOMGrpcClient{
+		Client: &http.Client{},
+		Cfg:    cfg,
+		Log:    log,
+	}
 }
 
 // CreateTicket Example

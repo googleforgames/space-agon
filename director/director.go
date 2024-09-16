@@ -18,16 +18,10 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math"
-	"net/http"
 	"time"
 
-	"github.com/spf13/viper"
-
-	"github.com/googleforgames/space-agon/logging"
 	"github.com/googleforgames/space-agon/omclient"
 	"google.golang.org/protobuf/types/known/anypb"
-	"open-match.dev/open-match/pkg/pb"
 
 	agonesv1 "agones.dev/agones/pkg/apis/agones/v1"
 	allocationv1 "agones.dev/agones/pkg/apis/allocation/v1"
@@ -40,42 +34,28 @@ import (
 )
 
 const (
-	// omApiHost  = "open-match-backend.open-match.svc.cluster.local:50505"
-	mmfApiHost = "mmf.default.svc.cluster.local"
+	mmfApiHost = "http://10.128.0.30"
 	mmfApiPort = 50502
 )
 
 type Client struct {
-	BackendServiceClient       pb.BackendServiceClient
-	CloserBackendServiceClient func() error
-	AgonesClientset            versioned.Interface
+	OmClient        *omclient.RestfulOMGrpcClient
+	AgonesClientset versioned.Interface
 }
 
 func main() {
 	log.Println("Starting Director")
 
 	for range time.Tick(time.Second) {
-
-		// omBackendClient, omCloser := createOMBackendClient()
-
 		var r Client
 		r.AgonesClientset = createAgonesClient()
-		// r.BackendServiceClient = omBackendClient
-		// r.CloserBackendServiceClient = omCloser
+		r.OmClient = omclient.CreateOMClient()
 
 		if err := r.run(); err != nil {
 			log.Println("Error running director:", err.Error())
 		}
 	}
 }
-
-// func createOMBackendClient() (pb.BackendServiceClient, func() error) {
-// 	conn, err := grpc.Dial(omApiHost, grpc.WithTransportCredentials(insecure.NewCredentials()))
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	return pb.NewBackendServiceClient(conn), conn.Close
-// }
 
 func createAgonesClient() *versioned.Clientset {
 	config, err := rest.InClusterConfig()
@@ -95,8 +75,8 @@ func createOMFetchMatchesRequest() *pb2.MmfRequest {
 		// om-function:50502 -> the internal hostname & port number of the MMF service in our Kubernetes cluster
 		Mmfs: []*pb2.MatchmakingFunctionSpec{
 			{
-				Host: "http://10.128.0.30",
-				Port: 50502,
+				Host: mmfApiHost,
+				Port: mmfApiPort,
 				Type: pb2.MatchmakingFunctionSpec_GRPC,
 			},
 		},
@@ -126,17 +106,6 @@ func createOMAssignTicketRequest(match *pb2.Match, gsa *allocationv1.GameServerA
 		tids = append(tids, r.Tickets...)
 	}
 
-	// return &pb2.CreateAssignmentsRequest{
-	// 	Assignments: []*pb.AssignmentGroup{
-	// 		{
-	// 			TicketIds: tids,
-	// 			Assignment: &pb.Assignment{
-	// 				Connection: fmt.Sprintf("%s:%d", gsa.Status.Address, gsa.Status.Ports[0].Port),
-	// 			},
-	// 		},
-	// 	},
-	// }
-
 	return &pb2.CreateAssignmentsRequest{
 		AssignmentRoster: &pb2.Roster{
 			Name: "My_Assignment_Roster_Name",
@@ -144,64 +113,18 @@ func createOMAssignTicketRequest(match *pb2.Match, gsa *allocationv1.GameServerA
 				Connection: fmt.Sprintf("%s:%d", gsa.Status.Address, gsa.Status.Ports[0].Port),
 			},
 			Tickets: tids,
-	    },
+		},
 	}
 }
 
 func (r Client) run() error {
-	// bc := r.BackendServiceClient
-	// closer := r.CloserBackendServiceClient
-	// defer func() {
-	// 	err := closer()
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 	}
-	// }()
-
-	// Connection config.
-	cfg := viper.New()
-	cfg.SetDefault("OM_CORE_ADDR", "https://om-core-976869741551.us-central1.run.app")
-	cfg.SetDefault("SOLODUEL_ADDR", "http://localhost")
-
-	// OM core config that the matchmaker needs to respect
-	cfg.SetDefault("OM_CORE_MAX_UPDATES_PER_ACTIVATION_CALL", 500)
-
-	// InvokeMatchmaking Function config
-	cfg.SetDefault("NUM_MM_CYCLES", math.MaxInt32)                   // Default is essentially forever
-	cfg.SetDefault("NUM_CONSECUTIVE_EMPTY_MM_CYCLES_BEFORE_QUIT", 3) // Exit if 3 matchmaking cycles come back empty
-
-	// Override these with env vars when doing local development.
-	// Suggested values in that case are "text", "debug", and "false",
-	// respectively
-	cfg.SetDefault("LOGGING_FORMAT", "json")
-	cfg.SetDefault("LOGGING_LEVEL", "trace")
-	cfg.SetDefault("LOG_CALLER", "false")
-
-	// Read overrides from env vars
-	cfg.AutomaticEnv()
-
-	// Set up structured logging
-	// Default logging configuration is json that plays nicely with Google Cloud Run.
-	log := logging.NewSharedLogger(cfg)
-
-	OmClient := &omclient.RestfulOMGrpcClient{
-		Client: &http.Client{},
-		Cfg:    cfg,
-		Log:    log,
-	}
-
 	invocationResultChan := make(chan *pb2.StreamedMmfResponse)
 
 	fmt.Println("Director: start InvokeMatchmakingFunctions in another thread")
 
-	go OmClient.InvokeMatchmakingFunctions(context.Background(), createOMFetchMatchesRequest(), invocationResultChan)
+	go r.OmClient.InvokeMatchmakingFunctions(context.Background(), createOMFetchMatchesRequest(), invocationResultChan)
 
 	agonesClient := r.AgonesClientset
-
-	// stream, err := bc.FetchMatches(context.Background(), createOMFetchMatchesRequest())
-	// if err != nil {
-	// 	return fmt.Errorf("fail to get response stream from backend.FetchMatches call: %w", err)
-	// }
 
 	totalMatches := 0
 	// Read the FetchMatches response. Each loop fetches an available game match that satisfies the match profiles.
@@ -228,15 +151,7 @@ func (r Client) run() error {
 
 		fmt.Println("The game server is allocated, assigning tickets")
 
-		// if _, err = bc.AssignTickets(context.Background(), createOMAssignTicketRequest(resp.GetMatch(), gsa)); err != nil {
-		// 	// Corner case where we allocated a game server for players who left the queue after some waiting time.
-		// 	// Note that we may still leak some game servers when tickets got assigned but players left the queue before game frontend announced the assignments.
-		// 	if err = agonesClient.AgonesV1().GameServers("default").Delete(ctx, gsa.Status.GameServerName, metav1.DeleteOptions{}); err != nil {
-		// 		return fmt.Errorf("error assigning tickets: %w", err)
-		// 	}
-		// }
-
-		if _, err = OmClient.CreateAssignments(context.Background(), createOMAssignTicketRequest(resp.GetMatch(), gsa)); err != nil {
+		if _, err = r.OmClient.CreateAssignments(context.Background(), createOMAssignTicketRequest(resp.GetMatch(), gsa)); err != nil {
 			// Corner case where we allocated a game server for players who left the queue after some waiting time.
 			// Note that we may still leak some game servers when tickets got assigned but players left the queue before game frontend announced the assignments.
 			if err = agonesClient.AgonesV1().GameServers("default").Delete(ctx, gsa.Status.GameServerName, metav1.DeleteOptions{}); err != nil {
