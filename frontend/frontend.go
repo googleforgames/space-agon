@@ -29,11 +29,10 @@ import (
 	"github.com/googleforgames/space-agon/omclient"
 	"golang.org/x/net/websocket"
 	"google.golang.org/grpc"
-	"open-match.dev/open-match/pkg/pb"
 )
 
 const (
-	defaultFrontendAddress = "https://om-core-976869741551.asia-northeast1.run.app"
+	defaultFrontendAddress = "https://om-core-976869741551.us-central1.run.app"
 )
 
 func main() {
@@ -71,7 +70,7 @@ func matchmake(ws *websocket.Conn) {
 		case err := <-errs:
 			log.Println("Error getting assignment:", err)
 			//err = stream.Send(&pb.Assignment{Error: status.Convert(err).Proto()})
-			err = stream.Send(&pb.Assignment{})
+			err = stream.Send(&pb2.Assignment{})
 			if err != nil {
 				log.Println("Error sending error:", err)
 			}
@@ -147,13 +146,11 @@ func streamAssignments(ctx context.Context, assignments chan *pb2.Assignment, er
 	}
 
 	log.Println("watching assignments: ", waReq)
-	// stream, err := fe.WatchAssignments(ctx, waReq)
-	// if err != nil {
-	// 	errs <- fmt.Errorf("error getting assignment stream: %w", err)
-	// 	return
-	// }
+	assignmentsResultChan := make(chan *pb2.StreamedWatchAssignmentsResponse)
 
-	var assignment *pb2.Assignment
+	go OmClient.WatchAssignments(context.Background(), waReq, assignmentsResultChan)
+
+	// var assignment *pb2.Assignment
 	// for assignment.GetConnection() == "" {
 	// 	resp, err := stream.Recv()
 	// 	if err != nil {
@@ -162,9 +159,16 @@ func streamAssignments(ctx context.Context, assignments chan *pb2.Assignment, er
 	// 	}
 	// 	assignment = resp.Assignment
 	// }
+	log.Println("waiting for assignmentsResultChan to give results ")
+	// for resp := range assignmentsResultChan {
+	resp := <-assignmentsResultChan
+	fmt.Println("got something from the assignmentsResultChan: ", resp)
+	log.Printf("Got assignment: %v", resp.Assignment)
+	assignments <- resp.Assignment
+	// }
 
-	assignments <- assignment
-	log.Printf("Got assignment: %v", assignment)
+	// assignments <- assignment
+
 }
 
 func connectFrontendServer() (*grpc.ClientConn, error) {

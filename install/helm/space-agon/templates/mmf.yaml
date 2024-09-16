@@ -39,13 +39,19 @@ apiVersion: v1
 kind: Service
 metadata:
   name:  {{ template "mmf.name" .}}
+  annotations:
+    networking.gke.io/load-balancer-type: "Internal"
+    # kubernetes.io/ingress.globalStatic-ip-name: "my-static-ip"
   namespace: {{ .Release.Namespace }}
   labels:
     run:  {{ template "mmf.name" .}}
 spec:
-  type: {{ .Values.mmf.serviceType }}
+  type: LoadBalancer
+  loadBalancerIP: 10.128.0.30
+  # loadBalancerIP: 34.122.101.179
   ports:
     - port: {{ .Values.mmf.servicePort }}
+      targetPort: {{ .Values.mmf.servicePort }}
       protocol: TCP
   selector:
     run:  {{ template "mmf.name" .}}

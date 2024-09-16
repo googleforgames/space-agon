@@ -257,7 +257,7 @@ install:
 		--set mmf.image.tag=${TAG} \
 		--set frontend.replicas=1 \
 		--set dedicated.replicas=2 \
-		--set mmf.replicas=2 \
+		--set mmf.replicas=1 \
 		--set dedicated.resources.limits.cpu="500m" \
 		--set dedicated.resources.limits.memory="200Mi" \
 		--set dedicated.resources.requests.cpu="500m" \

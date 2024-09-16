@@ -22,6 +22,8 @@ RUN go mod download
 
 RUN mkdir /app
 COPY director ./director
+COPY omclient ./omclient
+COPY logging ./logging
 RUN CGO_ENABLED=0 go build -installsuffix cgo -o /app/director github.com/googleforgames/space-agon/director
 
 FROM gcr.io/distroless/static:nonroot

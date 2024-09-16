@@ -27,7 +27,7 @@ mmf:
   name: mmf
   replicas: 1
   containerPort: 50502
-  serviceType: ClusterIP
+  serviceType: LoadBalancer
   servicePort: 50502
   image: 
     repository: local/space-agon-mmf

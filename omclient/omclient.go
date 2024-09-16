@@ -271,6 +271,8 @@ func (rc *RestfulOMGrpcClient) InvokeMatchmakingFunctions(ctx context.Context, r
 	// Make sure the output channel always gets closed when this function is finished.
 	defer close(respChan)
 
+	fmt.Println("Entering InvokeMatchmakingFunctions")
+
 	logger := rc.Log.WithFields(logrus.Fields{
 		"component": "open_match_client",
 		"operation": "proxy_InvokeMatchmakingFunctions",
@@ -358,6 +360,196 @@ func (rc *RestfulOMGrpcClient) InvokeMatchmakingFunctions(ctx context.Context, r
 		// Close response body
 		resp.Body.Close()
 	}
+}
+
+func (rc *RestfulOMGrpcClient) WatchAssignments(ctx context.Context, reqPb *pb.WatchAssignmentsRequest, respChan chan *pb.StreamedWatchAssignmentsResponse) {
+	// Make sure the output channel always gets closed when this function is finished.
+	defer close(respChan)
+
+	fmt.Println("Entering WatchAssignments")
+
+	logger := rc.Log.WithFields(logrus.Fields{
+		"component": "open_match_client",
+		"operation": "proxy_WatchAssignments",
+	})
+
+	// Have to cancel the context to tell the om-core server we're done reading from the stream.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Marshal protobuf request to JSON for grpc-gateway HTTP call
+	req, err := protojson.Marshal(reqPb)
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"pb_message": "WatchAssignmentsRequest",
+		}).Errorf("cannot marshal protobuf to json")
+	} else {
+		logger.Trace("Marshalled WatchAssignmentsRequest protobuf message to JSON")
+	}
+
+	// HTTP version of gRPC InvokeMatchmakingFunctions() call
+	logger.Trace("Calling WatchAssignments()")
+	resp, err := rc.Post(ctx, logger, rc.Cfg.GetString("OM_CORE_ADDR"), "/assignments:watch", req)
+	if err != nil {
+		logger.Errorf("WatchAssignments call failed: %v", err)
+	} else {
+		logger.Tracef("InvokeMatchmakingFunction call successful: %v", resp.StatusCode)
+
+		// Check for a successful HTTP status code
+		if resp.StatusCode != http.StatusOK {
+			logger.Fatalf("Request failed with status: %s", resp.Status)
+		}
+
+		// Process the result stream
+		for {
+			var resPb *pb.StreamedWatchAssignmentsResponse
+			// Retrieve JSON-formatted protobuf from response body
+			var msg string
+			_, err := fmt.Fscanf(resp.Body, "%s\n", &msg)
+
+			// Validate response before processing
+			if err == io.EOF {
+				break // End of stream; done!
+			}
+			if err != nil {
+				logger.Errorf("Error reading stream, closing: %v", err)
+				break
+			}
+
+			// Easy to miss: grpc-gateway returns your result inside a
+			// overarching JSON enclosure under the key 'result', so
+			// the actual text we need to pass to protojson.Unmarshal
+			// needs to omit the top level JSON object. Rather than
+			// marshal the text to json (which is slow), we just use
+			// string trimming functions.
+			trimmedMsg := strings.TrimSuffix(strings.TrimPrefix(msg, `{"result":`), "}")
+			logger.WithFields(logrus.Fields{
+				"pb_message": "StreamedWatchAssignmentsResponse",
+			}).Tracef("HTTP response JSON body version of StreamedWatchAssignmentsResponse received")
+
+			// Unmarshal json back into protobuf
+			resPb = &pb.StreamedWatchAssignmentsResponse{}
+			err = protojson.Unmarshal([]byte(trimmedMsg), resPb)
+			if err != nil {
+				logger.WithFields(logrus.Fields{
+					"pb_message":    "StreamedWatchAssignmentsResponse",
+					"http_response": trimmedMsg,
+					"error":         err,
+				}).Errorf("cannot unmarshal http response body back into protobuf")
+				continue
+			} else {
+				logger.Trace("Successfully unmarshalled HTTP response JSON body back into StreamedWatchAssignmentsResponse protobuf message")
+			}
+
+			if resPb == nil {
+				logger.Trace("StreamedWatchAssignmentsResponse protobuf was nil!")
+				continue // Loop again to get the next streamed response
+			}
+
+			// Send back the streamed responses as we get them
+			logger.Trace("StreamedWatchAssignmentsResponse protobuf exists")
+			respChan <- resPb
+
+		}
+
+		// Close response body
+		resp.Body.Close()
+	}
+}
+
+func (rc *RestfulOMGrpcClient) CreateAssignments(ctx context.Context, reqPb *pb.CreateAssignmentsRequest) (*pb.CreateAssignmentsResponse, error) {
+	fmt.Println("Entering CreateAssignments")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	logger := rc.Log.WithFields(logrus.Fields{
+		"component": "open_match_client",
+		"operation": "proxy_CreateAssignments",
+	})
+
+	// Update metrics
+	//createdTicketCounter.Add(ctx, 1)
+
+	// Put the ticket into open match CreateTicket request protobuf message.
+	// reqPb := &pb.CreateTicketRequest{Ticket: ticket}
+	resPb := &pb.CreateAssignmentsResponse{}
+	var err error
+	var req []byte
+
+	// Marshal request into json
+	req, err = protojson.Marshal(reqPb)
+	if err != nil {
+		// Mark as a permanent error so the backoff library doesn't retry this (invalid input)
+		err := backoff.Permanent(err)
+		logger.WithFields(logrus.Fields{
+			"pb_message": "CreateAssignments",
+		}).Errorf("cannot marshal proto to json")
+		return resPb, err
+	}
+
+	// HTTP version of the gRPC CreateTicket() call
+	resp, err := rc.Post(ctx, logger, rc.Cfg.GetString("OM_CORE_ADDR"), "/assignments:create", req)
+
+	// Include headers in structured loggerging when debugging.
+	headerFields := logrus.Fields{}
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		for key, value := range resp.Header {
+			headerFields[key] = value
+		}
+	}
+	logger = logger.WithFields(headerFields)
+
+	if resp != nil && resp.StatusCode != http.StatusOK { // HTTP error code
+		err := fmt.Errorf("%s (%d)", http.StatusText(resp.StatusCode), resp.StatusCode)
+		logger.WithFields(logrus.Fields{
+			"CreateAssignmentsRequest": reqPb,
+		}).Errorf("CreateAssignmentsRequest failed: %v", err)
+		//TODO: switch resp.Header?
+		return resPb, err
+	}
+
+	if err != nil { // HTTP library error
+		logger.WithFields(logrus.Fields{
+			"CreateAssignmentsRequest": reqPb,
+		}).Errorf("CreateAssignmentsRequest failed: %v", err)
+		return resPb, err
+	}
+
+	// Read HTTP response body
+	body, err := readAllBody(*resp, logger)
+	if err != nil {
+		// Mark as a permanent error so the backoff library doesn't retry this REST call
+		err := backoff.Permanent(err)
+		logger.WithFields(logrus.Fields{
+			"pb_message": "CreateAssignmentsResponse",
+			"error":      err,
+		}).Errorf("cannot read http response body")
+		return resPb, err
+	}
+
+	// Success, unmarshal json back into protobuf
+	err = protojson.Unmarshal(body, resPb)
+	if err != nil {
+		// Mark as a permanent error so the backoff library doesn't retry this REST call
+		err := backoff.Permanent(err)
+		logger.WithFields(headerFields).WithFields(logrus.Fields{
+			"response_body": string(body),
+			"pb_message":    "CreateAssignmentsResponse",
+			"error":         err,
+		}).Errorf("cannot unmarshal http response body back into protobuf")
+		return resPb, err
+	}
+
+	if resPb == nil {
+		// Mark as a permanent error so the backoff library doesn't retry this REST call
+		err := backoff.Permanent(errors.New("CreateAssignments returned empty result"))
+		logger.Error(err)
+		return resPb, err
+	}
+
+	// Successful ticket creation
+	logger.Debugf("CreateAssignments %v complete", resPb)
+	return resPb, err
 }
 
 // type idTokenSource struct {

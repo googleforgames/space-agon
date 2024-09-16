@@ -748,7 +748,6 @@ k8s.io/utils/net
 k8s.io/utils/strings/slices
 # open-match.dev/open-match v1.8.0
 ## explicit; go 1.21
-open-match.dev/open-match/pkg/matchfunction
 open-match.dev/open-match/pkg/pb
 open-match.dev/open-match/testing
 # sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd
