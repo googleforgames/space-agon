@@ -43,6 +43,9 @@ spec:
           imagePullPolicy: {{ .Values.frontend.image.imagePullPolicy }}
           ports:
             - containerPort: {{ .Values.frontend.containerPort }}
+          env:
+          - name: OM_CORE_ADDRESS
+            value: {{ .Values.frontend.omCoreAddress }}
 ---
 apiVersion: v1
 kind: Service

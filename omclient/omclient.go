@@ -24,6 +24,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -48,7 +49,7 @@ type RestfulOMGrpcClient struct {
 func CreateOMClient() *RestfulOMGrpcClient {
 	// Connection config.
 	cfg := viper.New()
-	cfg.SetDefault("OM_CORE_ADDR", "https://om-core-976869741551.us-central1.run.app")
+	cfg.SetDefault("OM_CORE_ADDR", os.Getenv("OM_CORE_ADDRESS"))
 
 	// OM core config that the matchmaker needs to respect
 	cfg.SetDefault("OM_CORE_MAX_UPDATES_PER_ACTIVATION_CALL", 500)

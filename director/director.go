@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/googleforgames/space-agon/omclient"
@@ -31,11 +33,6 @@ import (
 	"k8s.io/client-go/rest"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-)
-
-const (
-	mmfApiHost = "http://10.128.0.30"
-	mmfApiPort = 50502
 )
 
 type Client struct {
@@ -71,12 +68,16 @@ func createAgonesClient() *versioned.Clientset {
 
 // Customize the backend.FetchMatches request, the default one will return all tickets in the statestore
 func createOMFetchMatchesRequest() *pb2.MmfRequest {
+	port, err := strconv.Atoi(os.Getenv("MMF_PORT"))
+	if err != nil {
+		log.Println("Error parsing MMF_PORT:", err.Error())
+	}
 	return &pb2.MmfRequest{
 		// om-function:50502 -> the internal hostname & port number of the MMF service in our Kubernetes cluster
 		Mmfs: []*pb2.MatchmakingFunctionSpec{
 			{
-				Host: mmfApiHost,
-				Port: mmfApiPort,
+				Host: os.Getenv("MMF_ADDRESS"),
+				Port: int32(port),
 				Type: pb2.MatchmakingFunctionSpec_GRPC,
 			},
 		},

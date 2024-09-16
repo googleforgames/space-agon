@@ -19,17 +19,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	pb2 "github.com/googleforgames/open-match2/v2/pkg/pb"
 	"github.com/googleforgames/space-agon/game/protostream"
 	"github.com/googleforgames/space-agon/omclient"
 	"golang.org/x/net/websocket"
-	"google.golang.org/grpc"
-)
-
-const (
-	defaultFrontendAddress = "https://om-core-976869741551.us-central1.run.app"
 )
 
 func main() {
@@ -121,20 +115,4 @@ func streamAssignments(ctx context.Context, assignments chan *pb2.Assignment, er
 	fmt.Println("got something from the assignmentsResultChan: ", resp)
 	log.Printf("Got assignment: %v", resp.Assignment)
 	assignments <- resp.Assignment
-}
-
-func connectFrontendServer() (*grpc.ClientConn, error) {
-	frontendAddr := os.Getenv("FRONTEND_ADDR")
-	if frontendAddr == "" {
-		frontendAddr = defaultFrontendAddress
-	}
-
-	conn, err := grpc.Dial(
-		frontendAddr,
-		grpc.WithAuthority(frontendAddr),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("error dialing open match: %w", err)
-	}
-	return conn, nil
 }

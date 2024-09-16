@@ -46,10 +46,10 @@ metadata:
     run:  {{ template "mmf.name" .}}
 spec:
   type: LoadBalancer
-  loadBalancerIP: 10.128.0.30
+  loadBalancerIP: {{ .Values.mmf.ipAddress }}
   ports:
     - port: {{ .Values.mmf.servicePort }}
-      targetPort: {{ .Values.mmf.servicePort }}
+      targetPort: {{ .Values.mmf.containerPort }}
       protocol: TCP
   selector:
     run:  {{ template "mmf.name" .}}

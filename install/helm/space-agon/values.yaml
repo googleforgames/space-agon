@@ -22,6 +22,7 @@ frontend:
     repository: local/space-agon-frontend
     tag: TAG
     imagePullPolicy: Always
+  omCoreAddress: "https://om-core-976869741551.us-central1.run.app"
 
 mmf:
   name: mmf
@@ -33,6 +34,7 @@ mmf:
     repository: local/space-agon-mmf
     tag: TAG
   imagePullPolicy: Always
+  ipAddress: 10.128.0.30
 
 director:
   name: director
@@ -42,6 +44,9 @@ director:
     repository: local/space-agon-director
     tag: TAG
   imagePullPolicy: Always
+  omCoreAddress: "https://om-core-976869741551.us-central1.run.app"
+  mmfAddress: "http://10.128.0.30"
+  mmfPort: 50502
 
 dedicated:
   name: dedicated

@@ -113,15 +113,3 @@ func TestStreamAssignments(t *testing.T) {
 	assert.NotEqual(t, codes.Unimplemented, <-errs)
 	cancel()
 }
-
-func TestConnectFrontendServer(t *testing.T) {
-	conn, err := connectFrontendServer()
-	defer func() {
-		err = conn.Close()
-		if err != nil {
-			t.Errorf("Close grpc connection failed: %v", err)
-		}
-	}()
-	assert.NoError(t, err)
-	t.Logf("Connected to the frontend mockserver")
-}
