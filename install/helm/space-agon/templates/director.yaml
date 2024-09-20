@@ -46,7 +46,7 @@ metadata:
   name: {{ .Values.director.serviceAccountName }}
   namespace: {{ .Release.Namespace }}
   annotations:
-    iam.gke.io/gcp-service-account: om-caller@peteryizhong-gke-dev.iam.gserviceaccount.com
+    iam.gke.io/gcp-service-account: {{ .Values.director.googleServiceAccount }}
   labels:
     app: {{ .Values.director.serviceAccountName }}
 ---

@@ -22,7 +22,8 @@ frontend:
     repository: local/space-agon-frontend
     tag: TAG
     imagePullPolicy: Always
-  omCoreAddress: "https://om-core-976869741551.us-central1.run.app"
+  omCoreAddress: YOUR_OM_CORE_ADDRESS
+  googleServiceAccount: YOUR_GOOGLE_SERVICE_ACCOUNT
 
 mmf:
   name: mmf
@@ -34,7 +35,7 @@ mmf:
     repository: local/space-agon-mmf
     tag: TAG
   imagePullPolicy: Always
-  ipAddress: 10.128.0.30
+  ipAddress: INTERNAL_IP_ADDRESS_YOU_RESERVED
 
 director:
   name: director
@@ -44,9 +45,10 @@ director:
     repository: local/space-agon-director
     tag: TAG
   imagePullPolicy: Always
-  omCoreAddress: "https://om-core-976869741551.us-central1.run.app"
-  mmfAddress: "http://10.128.0.30"
+  omCoreAddress: YOUR_OM_CORE_ADDRESS
+  mmfAddress: "http://INTERNAL_IP_ADDRESS_YOU_RESERVED"
   mmfPort: 50502
+  googleServiceAccount: YOUR_GOOGLE_SERVICE_ACCOUNT
 
 dedicated:
   name: dedicated
