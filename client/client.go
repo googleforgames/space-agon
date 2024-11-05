@@ -25,10 +25,10 @@ import (
 	"sync"
 	"syscall/js"
 
+	pb2 "github.com/googleforgames/open-match2/v2/pkg/pb"
 	"github.com/googleforgames/space-agon/game"
 	"github.com/googleforgames/space-agon/game/pb"
 	"github.com/googleforgames/space-agon/game/protostream"
-	ompb "open-match.dev/open-match/pkg/pb"
 )
 
 func main() {
@@ -215,7 +215,7 @@ func (c *client) matchmake() {
 	go func() {
 		defer wws.Close()
 		for {
-			a := &ompb.Assignment{}
+			a := &pb2.Assignment{}
 			err := stream.Recv(a)
 			if err != nil {
 				fatalError(fmt.Errorf("Error receiving assignment: %w", err))

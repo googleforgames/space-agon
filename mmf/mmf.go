@@ -21,65 +21,104 @@ import (
 	"net"
 	"time"
 
-	"google.golang.org/grpc/credentials/insecure"
-	"open-match.dev/open-match/pkg/matchfunction"
-
+	pb2 "github.com/googleforgames/open-match2/v2/pkg/pb"
 	"google.golang.org/grpc"
-	"open-match.dev/open-match/pkg/pb"
-)
-
-const (
-	matchName      = "first-match-mmf"
-	mmlogicAddress = "open-match-query.open-match.svc.cluster.local:50503"
 )
 
 func main() {
 	log.Println("Initializing")
 
-	conn, err := grpc.Dial(mmlogicAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	defer conn.Close()
-
-	mmf := matchFunctionService{
-		queryServiceClient: pb.NewQueryServiceClient(conn),
-	}
+	mmf := &matchFunctionService{}
 
 	server := grpc.NewServer()
-	pb.RegisterMatchFunctionServer(server, &mmf)
+	pb2.RegisterMatchMakingFunctionServiceServer(server, mmf)
 
 	ln, err := net.Listen("tcp", ":50502")
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	log.Println("Serving started")
+	log.Println("Serving started v1")
 	err = server.Serve(ln)
-	log.Fatalf("Error servering grpc: %s", err.Error())
+	log.Printf("Err status of servering grpc: %s", err.Error())
 }
 
 type matchFunctionService struct {
-	queryServiceClient pb.QueryServiceClient
+	pb2.UnimplementedMatchMakingFunctionServiceServer
 }
 
-func (mmf *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction_RunServer) error {
+func GetChunkedRequest(stream pb2.MatchMakingFunctionService_RunServer) (*pb2.Profile, error) {
+	var req *pb2.Profile
+	pools := make(map[string]*pb2.Pool)
+	for i := int32(1); i >= 0; i++ {
+		in, err := stream.Recv()
+		if err != nil {
+			// TODO: Check if we got any portion of a valid profile, if so, attempt a run
+			return nil, err
+		}
+
+		fmt.Println("Processing chunk ", i, "/", in.GetNumChunks())
+		for name, pool := range in.GetProfile().GetPools() {
+			if _, ok := pools[name]; !ok {
+				// First chunk containing this pool; initialize the local copy.
+				pools[name] = &pb2.Pool{
+					Name:                    pool.GetName(),
+					TagPresentFilters:       pool.GetTagPresentFilters(),
+					StringEqualsFilters:     pool.GetStringEqualsFilters(),
+					DoubleRangeFilters:      pool.GetDoubleRangeFilters(),
+					CreationTimeRangeFilter: pool.GetCreationTimeRangeFilter(),
+					Extensions:              pool.GetExtensions(),
+					Participants:            pool.GetParticipants(),
+				}
+			} else {
+				// concate pools split amoung multiple chunks
+				pools[name].Participants.Tickets = append(pools[name].Participants.Tickets, pool.GetParticipants().GetTickets()...)
+			}
+		}
+
+		if in.GetNumChunks() == i {
+			req = &pb2.Profile{
+				Name:       in.GetProfile().GetName(),
+				Pools:      pools,
+				Extensions: in.GetProfile().GetExtensions(),
+			}
+			// fmt.Println("Finished receiving %v chunks of MMF profile %v", in.GetProfile().GetName(), i)
+			break
+		}
+	}
+	return req, nil
+}
+
+func (mmf *matchFunctionService) Run(stream pb2.MatchMakingFunctionService_RunServer) error {
 	log.Printf("Running mmf")
 
-	poolTickets, err := matchfunction.QueryPools(stream.Context(), mmf.queryServiceClient, req.GetProfile().GetPools())
+	req, err := GetChunkedRequest(stream)
 	if err != nil {
-		return err
+		fmt.Println("error getting chunked request: ", err)
 	}
+	fmt.Println("Generating matches for profile ", req.GetName())
+
+	// Process tickets for the pools specified in the Match Profile.  In this
+	// example fifo matching strategy, any player can be matched with any other
+	// player, so just concatinate all the pools together.
+	tickets := []*pb2.Ticket{}
+	for pname, pool := range req.GetPools() {
+		tickets = append(tickets, pool.GetParticipants().GetTickets()...)
+		fmt.Printf("Found %v tickets in pool %v", len(tickets), pname)
+	}
+	fmt.Printf("Matching among %v tickets from %v provided pools", len(tickets), len(req.GetPools()))
 
 	// Make match proposal
-	proposals, err := makeMatches(req.Profile, poolTickets)
+	poolTickets := make(map[string][]*pb2.Ticket)
+	poolTickets["everyone"] = tickets
+	proposals, err := makeMatches(req, poolTickets)
 	if err != nil {
 		return err
 	}
 
 	matchesFound := 0
 	for _, proposal := range proposals {
-		err = stream.Send(&pb.RunResponse{Proposal: proposal})
+		err = stream.Send(&pb2.StreamedMmfResponse{Match: proposal})
 		if err != nil {
 			return err
 		}
@@ -90,8 +129,8 @@ func (mmf *matchFunctionService) Run(req *pb.RunRequest, stream pb.MatchFunction
 	return nil
 }
 
-func makeMatches(profile *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) ([]*pb.Match, error) {
-	var matches []*pb.Match
+func makeMatches(profile *pb2.Profile, poolTickets map[string][]*pb2.Ticket) ([]*pb2.Match, error) {
+	var matches []*pb2.Match
 
 	tickets, ok := poolTickets["everyone"]
 	if !ok {
@@ -101,12 +140,13 @@ func makeMatches(profile *pb.MatchProfile, poolTickets map[string][]*pb.Ticket) 
 	t := time.Now().Format("2006-01-02T15:04:05.00")
 
 	for i := 0; i+1 < len(tickets); i += 2 {
-		proposal := &pb.Match{
-			MatchId:       fmt.Sprintf("profile-%s-time-%s-num-%d", profile.Name, t, i/2),
-			MatchProfile:  profile.Name,
-			MatchFunction: matchName,
-			Tickets: []*pb.Ticket{
-				tickets[i], tickets[i+1],
+		proposal := &pb2.Match{
+			Id: fmt.Sprintf("profile-%s-time-%s-num-%d", profile.Name, t, i/2),
+			Rosters: map[string]*pb2.Roster{
+				"everyone": {
+					Name:    profile.Name,
+					Tickets: []*pb2.Ticket{tickets[i], tickets[i+1]},
+				},
 			},
 		}
 		matches = append(matches, proposal)

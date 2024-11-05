@@ -23,7 +23,7 @@ PROJECT=$(shell gcloud config list --format 'value(core.project)')
 LOCATION=us-central1
 REPOSITORY=space-agon
 REGISTRY=${LOCATION}-docker.pkg.dev/${PROJECT}/${REPOSITORY}
-TAG=$(shell git rev-parse --short HEAD)
+TAG=0.000002
 
 FRONTEND_IMG=space-agon-frontend
 DIRECTOR_IMG=space-agon-director
@@ -255,9 +255,9 @@ install:
 		--set director.image.tag=${TAG} \
 		--set mmf.image.repository="${REGISTRY}/${MMF_IMG}" \
 		--set mmf.image.tag=${TAG} \
-		--set frontend.replicas=2 \
+		--set frontend.replicas=1 \
 		--set dedicated.replicas=2 \
-		--set mmf.replicas=2 \
+		--set mmf.replicas=1 \
 		--set dedicated.resources.limits.cpu="500m" \
 		--set dedicated.resources.limits.memory="200Mi" \
 		--set dedicated.resources.requests.cpu="500m" \

@@ -17,23 +17,23 @@ package main
 import (
 	"testing"
 
+	pb2 "github.com/googleforgames/open-match2/v2/pkg/pb"
 	"github.com/stretchr/testify/assert"
-	"open-match.dev/open-match/pkg/pb"
 )
 
 func TestNewMatches(t *testing.T) {
-	pool := &pb.Pool{
+	pool := &pb2.Pool{
 		Name: "everyone",
 	}
-	profile := &pb.MatchProfile{
+	profile := &pb2.Profile{
 		Name:  "test-profile",
-		Pools: []*pb.Pool{pool},
+		Pools: map[string]*pb2.Pool{"everyone": pool},
 	}
 
-	poolTickets := map[string][]*pb.Ticket{
+	poolTickets := map[string][]*pb2.Ticket{
 		pool.Name: {
-			&pb.Ticket{Id: "ticket-1"},
-			&pb.Ticket{Id: "ticket-2"},
+			&pb2.Ticket{Id: "ticket-1"},
+			&pb2.Ticket{Id: "ticket-2"},
 		},
 	}
 	matches, err := makeMatches(profile, poolTickets)
@@ -43,8 +43,7 @@ func TestNewMatches(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Len(t, matches, 1)
-	assert.Len(t, matches[0].Tickets, len(poolTickets[pool.Name]))
-	assert.Contains(t, matches[0].MatchId, "profile-"+profile.Name+"-time")
-	assert.Equal(t, matches[0].MatchProfile, profile.Name)
-	assert.Equal(t, matches[0].MatchFunction, matchName)
+	assert.Len(t, matches[0].Rosters[pool.Name].Tickets, len(poolTickets[pool.Name]))
+	assert.Contains(t, matches[0].Id, "profile-"+profile.Name+"-time")
+	assert.Equal(t, profile.Name, matches[0].Rosters[pool.Name].Name)
 }

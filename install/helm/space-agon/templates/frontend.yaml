@@ -12,6 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: frontend-sa
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    iam.gke.io/gcp-service-account: {{ .Values.frontend.googleServiceAccount }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -27,12 +36,16 @@ spec:
       labels:
         run: {{ template "frontend.name" .}}
     spec:
+      serviceAccountName: frontend-sa
       containers:
         - name: {{ template "frontend.name" .}}
           image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
-          imagePullPolicy: {{ .Values.frontend.imagePullPolicy }}
+          imagePullPolicy: {{ .Values.frontend.image.imagePullPolicy }}
           ports:
             - containerPort: {{ .Values.frontend.containerPort }}
+          env:
+          - name: OM_CORE_ADDRESS
+            value: {{ .Values.frontend.omCoreAddress }}
 ---
 apiVersion: v1
 kind: Service

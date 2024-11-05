@@ -21,18 +21,21 @@ frontend:
   image: 
     repository: local/space-agon-frontend
     tag: TAG
-    imagePullPolicy: IfNotPresent
+    imagePullPolicy: Always
+  omCoreAddress: YOUR_OM_CORE_ADDRESS
+  googleServiceAccount: YOUR_GOOGLE_SERVICE_ACCOUNT
 
 mmf:
   name: mmf
   replicas: 1
   containerPort: 50502
-  serviceType: ClusterIP
+  serviceType: LoadBalancer
   servicePort: 50502
   image: 
     repository: local/space-agon-mmf
     tag: TAG
-  imagePullPolicy: IfNotPresent
+  imagePullPolicy: Always
+  ipAddress: INTERNAL_IP_ADDRESS_YOU_RESERVED
 
 director:
   name: director
@@ -41,7 +44,11 @@ director:
   image: 
     repository: local/space-agon-director
     tag: TAG
-  imagePullPolicy: IfNotPresent
+  imagePullPolicy: Always
+  omCoreAddress: YOUR_OM_CORE_ADDRESS
+  mmfAddress: "http://INTERNAL_IP_ADDRESS_YOU_RESERVED"
+  mmfPort: 50502
+  googleServiceAccount: YOUR_GOOGLE_SERVICE_ACCOUNT
 
 dedicated:
   name: dedicated
@@ -51,7 +58,7 @@ dedicated:
   image: 
     repository: local/space-agon-dedicated
     tag: TAG
-  imagePullPolicy: IfNotPresent
+  imagePullPolicy: Always
   portPolicy: Dynamic
   resources:
     limits:
