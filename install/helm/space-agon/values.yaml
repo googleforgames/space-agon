@@ -22,20 +22,20 @@ frontend:
     repository: local/space-agon-frontend
     tag: TAG
     imagePullPolicy: Always
-  omCoreAddress: YOUR_OM_CORE_ADDRESS
-  googleServiceAccount: YOUR_GOOGLE_SERVICE_ACCOUNT
+  omCoreAddress: "http://open-match-service.default.svc.cluster.local:50504"
+  # googleServiceAccount: om-caller@peteryizhong-gke-dev.iam.gserviceaccount.com
 
 mmf:
   name: mmf
   replicas: 1
   containerPort: 50502
-  serviceType: LoadBalancer
+  serviceType: ClusterIP
   servicePort: 50502
   image: 
     repository: local/space-agon-mmf
     tag: TAG
   imagePullPolicy: Always
-  ipAddress: INTERNAL_IP_ADDRESS_YOU_RESERVED
+  # ipAddress: 10.128.0.30
 
 director:
   name: director
@@ -45,10 +45,10 @@ director:
     repository: local/space-agon-director
     tag: TAG
   imagePullPolicy: Always
-  omCoreAddress: YOUR_OM_CORE_ADDRESS
-  mmfAddress: "http://INTERNAL_IP_ADDRESS_YOU_RESERVED"
+  omCoreAddress: "http://open-match-service.default.svc.cluster.local:50504"
+  mmfAddress: "http://mmf.default.svc.cluster.local"
   mmfPort: 50502
-  googleServiceAccount: YOUR_GOOGLE_SERVICE_ACCOUNT
+  # googleServiceAccount: om-caller@peteryizhong-gke-dev.iam.gserviceaccount.com
 
 dedicated:
   name: dedicated

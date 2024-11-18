@@ -1,0 +1,67 @@
+---
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-match-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: open-match-deployment
+  template:
+    metadata:
+      labels:
+        app: open-match-deployment
+    spec:
+      containers:
+        - image: us-central1-docker.pkg.dev/peteryizhong-gke-dev/peteryizhong-repository/om-core
+          name: core 
+          ports:
+          - containerPort: 8080
+          env:
+          - name: OM_LOGGING_LEVEL
+            value: debug
+          - name: OM_REDIS_WRITE_HOST
+            value: redis.default.svc.cluster.local
+          - name: OM_REDIS_READ_HOST
+            value: redis.default.svc.cluster.local
+          - name: OM_OTEL_SIDECAR
+            value: "false"
+        # - image: us-central1-docker.pkg.dev/peteryizhong-gke-dev/peteryizhong-repository/otel-collector-sidecar
+        #   name: opentelemetry-collector
+          # startupProbe:
+          #   failureThreshold: 3
+          #   httpGet:
+          #     path: /
+          #     port: 13133
+          #   periodSeconds: 10
+          #   timeoutSeconds: 1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-match-service
+  labels:
+    run: open-match-service
+spec:
+  ports:
+    - port: 50504
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app: open-match-deployment
+  type: ClusterIP

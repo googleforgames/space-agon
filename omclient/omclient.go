@@ -113,6 +113,7 @@ func (rc *RestfulOMGrpcClient) CreateTicket(ticket *pb.Ticket) (string, error) {
 	}
 
 	// HTTP version of the gRPC CreateTicket() call
+	fmt.Printf("v1: OM_CORE_ADDR is %v \n", rc.Cfg.GetString("OM_CORE_ADDR"))
 	resp, err := rc.Post(ctx, logger, rc.Cfg.GetString("OM_CORE_ADDR"), "/tickets", buf)
 
 	// Include headers in structured loggerging when debugging.
@@ -585,31 +586,25 @@ func (rc *RestfulOMGrpcClient) Post(ctx context.Context, logger *logrus.Entry, u
 
 	postLogger.Trace("Header set, request created")
 
-	// if os.Getenv("K_REVISION") != "" { // Running on Cloud Run, get GCP SA token
-	if rc.tokenSource == nil {
-		// Create a TokenSource if none exists.
-		rc.tokenSource, err = idtoken.NewTokenSource(ctx, url)
-		if err != nil {
-			fmt.Println("Cloud Run service account authentication requires token source, but couldn't get one. Trying to continue without SA auth. idtoken.NewTokenSource: %w", err)
+	fmt.Println("running new version000")
+	if os.Getenv("K_REVISION") != "" { // Running on Cloud Run, get GCP SA token
+		if rc.tokenSource == nil {
+			// Create a TokenSource if none exists.
+			rc.tokenSource, err = idtoken.NewTokenSource(ctx, url)
+			if err != nil {
+				err = fmt.Errorf("Cloud Run service account authentication requires token source, but couldn't get one. idtoken.NewTokenSource: %w", err)
+				return nil, err
+			}
 		}
-	}
 
-	if rc.tokenSource == nil {
-		fmt.Println("rc.tokenSource is nil")
+		// Retrieve an identity token. Will reuse tokens until refresh needed.
+		token, err := rc.tokenSource.Token()
+		if err != nil {
+			err = fmt.Errorf("Cloud Run service account authentication requires a token, but couldn't get one. TokenSource.Token: %w", err)
+			return nil, err
+		}
+		token.SetAuthHeader(req)
 	}
-
-	// Retrieve an identity token. Will reuse tokens until refresh needed.
-	token, err := rc.tokenSource.Token()
-	if err != nil {
-		fmt.Println("Cloud Run service account authentication requires a token, but couldn't get one. Trying to continue without SA auth. TokenSource.Token: %w", err)
-	}
-	token.SetAuthHeader(req)
-	// }
-
-	// client, err := idtoken.NewClient(ctx, url)
-	// if err != nil {
-	// 	fmt.Println("Error connecting to client: ", err)
-	// }
 
 	// Log all request headers if debug logging (slow)
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
