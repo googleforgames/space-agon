@@ -77,19 +77,13 @@ func matchmake(ws *websocket.Conn) {
 }
 
 func streamAssignments(ctx context.Context, assignments chan *pb2.Assignment, errs chan error) {
-	log.Println("streaming assignments 123123...")
-
 	omClient := omclient.CreateOMClient()
 
-	log.Println("creating a ticket 02...")
 	ticketId, err := omClient.CreateTicket(&pb2.Ticket{})
 	if err != nil {
 		errs <- fmt.Errorf("error creating open match ticket: %w", err)
 		return
 	}
-
-	log.Println("ticket created, ticket id is: ", ticketId)
-	log.Println("activating a ticket: ", ticketId)
 
 	ticketIdsToActivate := make(chan string)
 
@@ -99,20 +93,15 @@ func streamAssignments(ctx context.Context, assignments chan *pb2.Assignment, er
 
 	ticketIdsToActivate <- ticketId
 
-	log.Println("ticketid send to ticketIdsToActivate: ", ticketId)
-
 	waReq := &pb2.WatchAssignmentsRequest{
 		TicketIds: []string{ticketId},
 	}
 
-	log.Println("watching assignments: ", waReq)
 	assignmentsResultChan := make(chan *pb2.StreamedWatchAssignmentsResponse)
 
 	go omClient.WatchAssignments(context.Background(), waReq, assignmentsResultChan)
 
-	log.Println("waiting for assignmentsResultChan to give results ")
 	resp := <-assignmentsResultChan
-	fmt.Println("got something from the assignmentsResultChan: ", resp)
 	log.Printf("Got assignment: %v", resp.Assignment)
 	assignments <- resp.Assignment
 }

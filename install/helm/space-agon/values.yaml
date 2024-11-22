@@ -23,7 +23,6 @@ frontend:
     tag: TAG
     imagePullPolicy: Always
   omCoreAddress: "http://open-match-service.default.svc.cluster.local:50504"
-  # googleServiceAccount: om-caller@peteryizhong-gke-dev.iam.gserviceaccount.com
 
 mmf:
   name: mmf
@@ -35,7 +34,6 @@ mmf:
     repository: local/space-agon-mmf
     tag: TAG
   imagePullPolicy: Always
-  # ipAddress: 10.128.0.30
 
 director:
   name: director
@@ -48,7 +46,6 @@ director:
   omCoreAddress: "http://open-match-service.default.svc.cluster.local:50504"
   mmfAddress: "http://mmf.default.svc.cluster.local"
   mmfPort: 50502
-  # googleServiceAccount: om-caller@peteryizhong-gke-dev.iam.gserviceaccount.com
 
 dedicated:
   name: dedicated

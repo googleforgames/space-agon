@@ -121,23 +121,14 @@ func createOMAssignTicketRequest(match *pb2.Match, gsa *allocationv1.GameServerA
 func (r Client) run() error {
 	invocationResultChan := make(chan *pb2.StreamedMmfResponse)
 
-	fmt.Println("Director: start InvokeMatchmakingFunctions in another thread")
-
 	go r.OmClient.InvokeMatchmakingFunctions(context.Background(), createOMFetchMatchesRequest(), invocationResultChan)
 
 	agonesClient := r.AgonesClientset
 
 	totalMatches := 0
 	// Read the FetchMatches response. Each loop fetches an available game match that satisfies the match profiles.
-	fmt.Println("Director: waiting for invocationResultChan to have a resp")
 	for resp := range invocationResultChan {
-
-		fmt.Println("got something from the invocationResultChan: ", resp)
-
 		ctx := context.Background()
-
-		fmt.Println("Creating a game server")
-
 		gsa, err := agonesClient.AllocationV1().GameServerAllocations("default").Create(ctx, createAgonesGameServerAllocation(), metav1.CreateOptions{})
 		if err != nil {
 			return fmt.Errorf("error requesting allocation: %w", err)
@@ -149,8 +140,6 @@ func (r Client) run() error {
 			log.Printf("failed to allocate game server.\n")
 			continue
 		}
-
-		fmt.Println("The game server is allocated, assigning tickets")
 
 		if _, err = r.OmClient.CreateAssignments(createOMAssignTicketRequest(resp.GetMatch(), gsa)); err != nil {
 			// Corner case where we allocated a game server for players who left the queue after some waiting time.
