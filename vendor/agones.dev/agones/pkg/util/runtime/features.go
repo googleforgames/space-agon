@@ -31,8 +31,19 @@ const (
 	////////////////
 	// Beta features
 
-	// FeatureSplitControllerAndExtensions is a feature flag that will split agones-controller into two deployments
-	FeatureSplitControllerAndExtensions Feature = "SplitControllerAndExtensions"
+	// FeatureGKEAutopilotExtendedDurationPods enables the use of Extended Duration pods
+	// when Agones is running on Autopilot. Available on 1.28+ only.
+	FeatureGKEAutopilotExtendedDurationPods = "GKEAutopilotExtendedDurationPods"
+
+	// FeatureAutopilotPassthroughPort is a feature flag that enables/disables Passthrough Port Policy.
+	FeatureAutopilotPassthroughPort Feature = "AutopilotPassthroughPort"
+
+	// FeatureCountsAndLists is a feature flag that enables counts and lists feature
+	// (a generic implenetation of the player tracking feature).
+	FeatureCountsAndLists Feature = "CountsAndLists"
+
+	// FeatureDisableResyncOnSDKServer is a feature flag to enable/disable resync on SDK server.
+	FeatureDisableResyncOnSDKServer Feature = "DisableResyncOnSDKServer"
 
 	////////////////
 	// Alpha features
@@ -44,23 +55,20 @@ const (
 	// FeaturePlayerTracking is a feature flag to enable/disable player tracking features.
 	FeaturePlayerTracking Feature = "PlayerTracking"
 
-	// FeatureResetMetricsOnDelete is a feature flag that tells the metrics service to unregister and register
-	// relevant metric views to reset their state immediately when an Agones resource is deleted.
-	FeatureResetMetricsOnDelete Feature = "ResetMetricsOnDelete"
+	// FeaturePortRanges is a feature flag to enable/disable specific port ranges.
+	FeaturePortRanges Feature = "PortRanges"
 
-	// FeaturePodHostname enables the Pod Hostname being assigned the name of the GameServer
-	FeaturePodHostname = "PodHostname"
+	// FeaturePortPolicyNone is a feature flag to allow setting Port Policy to None.
+	FeaturePortPolicyNone Feature = "PortPolicyNone"
 
-	// FeatureFleetAllocateOverflow enables setting labels and/or annotations on Allocated GameServers
-	// if the desired number of the underlying GameServerSet drops below the number of Allocated GameServers.
-	FeatureFleetAllocateOverflow = "FleetAllocationOverflow"
+	// FeatureRollingUpdateFix is a feature flag to enable/disable fleet controller fixes.
+	FeatureRollingUpdateFix Feature = "RollingUpdateFix"
+
+	// FeatureScheduledAutoscaler is a feature flag to enable/disable scheduled fleet autoscaling.
+	FeatureScheduledAutoscaler Feature = "ScheduledAutoscaler"
 
 	////////////////
-	// "Pre"-Alpha features
-
-	// FeatureCountsAndLists is a feature flag that enables/disables counts and lists feature
-	// (a generic implenetation of the player tracking feature).
-	FeatureCountsAndLists Feature = "CountsAndLists"
+	// Dev features
 
 	////////////////
 	// Example feature
@@ -72,43 +80,68 @@ const (
 var (
 	// featureDefaults is a map of all Feature Gates that are
 	// operational in Agones, and what their default configuration is.
-	// alpha features are disabled by default; beta features are enabled.
+	// dev & alpha features are disabled by default; beta features are enabled.
 	//
-	// To add a new alpha feature:
+	// To add a new dev feature (an in progress feature, not tested in CI and not publicly documented):
 	// * add a const above
 	// * add it to `featureDefaults`
 	// * add it to install/helm/agones/defaultfeaturegates.yaml
+	// * note: you can add a new feature as an alpha feature if you're ready to test it in CI
+	//
+	// To promote a feature from dev->alpha:
 	// * add it to `ALPHA_FEATURE_GATES` in build/Makefile
 	// * add the inverse to the e2e-runner config in cloudbuild.yaml
 	// * add it to site/content/en/docs/Guides/feature-stages.md
+	// * Ensure that the features in each file are organized categorically and alphabetically.
 	//
 	// To promote a feature from alpha->beta:
 	// * move from `false` to `true` in `featureDefaults`.
 	// * move from `false` to `true` in install/helm/agones/defaultfeaturegates.yaml
 	// * remove from `ALPHA_FEATURE_GATES` in build/Makefile
+	// * add to `BETA_FEATURE_GATES` in build/Makefile
 	// * invert in the e2e-runner config in cloudbuild.yaml
 	// * change the value in site/content/en/docs/Guides/feature-stages.md.
-	// * Ensure that the features in each file are organized alphabetically.
+	// * Ensure that the features in each file are organized categorically and alphabetically.
+	//
+	// Feature Promotion: alpha->beta for SDK Functions
+	// * Move methods from alpha->beta files:
+	// 		- From proto/sdk/alpha/alpha.proto to proto/sdk/beta/beta.proto
+	//		- For each language-specific SDK (e.g., Go, C#, Rust):
+	//			- Move implementation files (e.g., alpha.go to beta.go)
+	//			- Move test files (e.g., alpha_test.go to beta_test.go)
+	//			- Note: Delete references to 'alpha' in the moved alpha methods.
+	// * Change all code and documentation references of alpha->beta:
+	//		- Proto Files: proto/sdk/sdk.proto `[Stage:Alpha]->[Stage:Beta]`
+	//		- SDK Implementations: Update in language-specific SDKs (e.g., sdks/go/sdk.go, sdks/csharp/sdk/AgonesSDK.cs).
+	//		- Examples & Tests: Adjust in files like examples/simple-game-server/main.go and language-specific test files.
+	// * Modify automation scripts in the build/build-sdk-images directory to support beta file generation.
+	// * Run `make gen-all-sdk-grpc` to generate the required files. If there are changes to the `proto/allocation/allocation.proto` run `make gen-allocation-grpc`.
+	// * Afterwards, execute the `make run-sdk-conformance-test-go` command and address any issues that arise.
+	// * NOTE: DO NOT EDIT any autogenerated code. `make gen-all-sdk-grpc` will take care of it.
 	//
 	// To promote a feature from beta->GA:
 	// * remove all places consuming the feature gate and fold logic to true
-	//   * consider cleanup - often folding a gate to true allows refactoring
+	// * consider cleanup - often folding a gate to true allows refactoring
 	// * invert the "new alpha feature" steps above
+	// * remove from `BETA_FEATURE_GATES` in build/Makefile
 	//
 	// In each of these, keep the feature sorted by descending maturity then alphabetical
 	featureDefaults = map[Feature]bool{
 		// Beta features
-		FeaturePodHostname:                  true,
-		FeatureResetMetricsOnDelete:         true,
-		FeatureSplitControllerAndExtensions: true,
+		FeatureGKEAutopilotExtendedDurationPods: true,
+		FeatureAutopilotPassthroughPort:         true,
+		FeatureCountsAndLists:                   true,
+		FeatureDisableResyncOnSDKServer:         true,
 
 		// Alpha features
 		FeaturePlayerAllocationFilter: false,
 		FeaturePlayerTracking:         false,
-		FeatureFleetAllocateOverflow:  false,
+		FeatureRollingUpdateFix:       false,
+		FeaturePortRanges:             false,
+		FeaturePortPolicyNone:         false,
+		FeatureScheduledAutoscaler:    false,
 
-		// Pre-Alpha features
-		FeatureCountsAndLists: false,
+		// Dev features
 
 		// Example feature
 		FeatureExample: false,

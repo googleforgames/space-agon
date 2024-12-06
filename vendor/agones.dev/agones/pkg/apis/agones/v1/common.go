@@ -15,6 +15,8 @@
 package v1
 
 import (
+	"math"
+
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
@@ -173,13 +175,23 @@ func (ao *AllocationOverflow) Apply(gs *GameServer) {
 	}
 }
 
-// Priority is a sorting option for GameServers with Counters or Lists based on the Capacity.
-// Type: Sort by a "Counter" or a "List".
-// Key: The name of the Counter or List. If not found on the GameServer, has no impact.
-// Order: Sort by "Ascending" or "Descending". "Descending" a bigger Capacity is preferred.
-// "Ascending" would be smaller Capacity is preferred.
+// Priority is a sorting option for GameServers with Counters or Lists based on the available capacity,
+// i.e. the current Capacity value, minus either the Count value or List length.
 type Priority struct {
-	Type  string `json:"type"`
-	Key   string `json:"key"`
+	// Type: Sort by a "Counter" or a "List".
+	Type string `json:"type"`
+	// Key: The name of the Counter or List. If not found on the GameServer, has no impact.
+	Key string `json:"key"`
+	// Order: Sort by "Ascending" or "Descending". "Descending" a bigger available capacity is preferred.
+	// "Ascending" would be smaller available capacity is preferred.
+	// The default sort order is "Ascending"
 	Order string `json:"order"`
+}
+
+// SafeAdd prevents overflow by limiting the sum to math.MaxInt64.
+func SafeAdd(x, y int64) int64 {
+	if x > math.MaxInt64-y {
+		return math.MaxInt64
+	}
+	return x + y
 }

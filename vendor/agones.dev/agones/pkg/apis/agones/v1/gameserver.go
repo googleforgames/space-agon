@@ -23,9 +23,10 @@ import (
 	"agones.dev/agones/pkg"
 	"agones.dev/agones/pkg/apis"
 	"agones.dev/agones/pkg/apis/agones"
+	"agones.dev/agones/pkg/util/apiserver"
 	"agones.dev/agones/pkg/util/runtime"
-	"github.com/mattbaird/jsonpatch"
 	"github.com/pkg/errors"
+	"gomodules.xyz/jsonpatch/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
@@ -81,6 +82,8 @@ const (
 	// Passthrough dynamically sets the `containerPort` to the same value as the dynamically selected hostPort.
 	// This will mean that users will need to lookup what port has been opened through the server side SDK.
 	Passthrough PortPolicy = "Passthrough"
+	// None means the `hostPort` is ignored and if defined, the `containerPort` (optional) is used to set the port on the GameServer instance.
+	None PortPolicy = "None"
 )
 
 // EvictionSafe specified whether the game server supports termination via SIGTERM
@@ -108,11 +111,16 @@ const (
 	SdkServerLogLevelDebug SdkServerLogLevel = "Debug"
 	// SdkServerLogLevelError will cause the SDK server to only output error messages.
 	SdkServerLogLevelError SdkServerLogLevel = "Error"
+	// SdkServerLogLevelTrace will cause the SDK server to output all messages, including detailed tracing information.
+	SdkServerLogLevelTrace SdkServerLogLevel = "Trace"
 )
 
 const (
 	// ProtocolTCPUDP Protocol exposes the hostPort allocated for this container for both TCP and UDP.
 	ProtocolTCPUDP corev1.Protocol = "TCPUDP"
+
+	// DefaultPortRange is the name of the default port range.
+	DefaultPortRange = "default"
 
 	// RoleLabel is the label in which the Agones role is specified.
 	// Pods from a GameServer will have the value "gameserver"
@@ -122,6 +130,9 @@ const (
 	// GameServerPodLabel is the label that the name of the GameServer
 	// is set on the Pod the GameServer controls
 	GameServerPodLabel = agones.GroupName + "/gameserver"
+	// GameServerPortPolicyPodLabel is the label to identify the port policy
+	// of the pod
+	GameServerPortPolicyPodLabel = agones.GroupName + "/port"
 	// GameServerContainerAnnotation is the annotation that stores
 	// which container is the container that runs the dedicated game server
 	GameServerContainerAnnotation = agones.GroupName + "/container"
@@ -138,6 +149,17 @@ const (
 	PodSafeToEvictAnnotation = "cluster-autoscaler.kubernetes.io/safe-to-evict"
 	// SafeToEvictLabel is a label that, when "false", matches the restrictive PDB agones-gameserver-safe-to-evict-false.
 	SafeToEvictLabel = agones.GroupName + "/safe-to-evict"
+	// GameServerErroredAtAnnotation is an annotation that records the timestamp the GameServer entered the
+	// error state. The timestamp is encoded in RFC3339 format.
+	GameServerErroredAtAnnotation = agones.GroupName + "/errored-at"
+	// FinalizerName is the domain name and finalizer path used to manage garbage collection of the GameServer.
+	FinalizerName = agones.GroupName + "/controller"
+
+	// NodePodIP identifies an IP address from a pod.
+	NodePodIP corev1.NodeAddressType = "PodIP"
+
+	// PassthroughPortAssignmentAnnotation is an annotation to keep track of game server container and its Passthrough ports indices
+	PassthroughPortAssignmentAnnotation = "agones.dev/container-passthrough-port-assignment"
 
 	// True is the string "true" to appease the goconst lint.
 	True = "true"
@@ -209,10 +231,14 @@ type GameServerSpec struct {
 	// (Alpha, PlayerTracking feature flag) Players provides the configuration for player tracking features.
 	// +optional
 	Players *PlayersSpec `json:"players,omitempty"`
-	// (Alpha, CountsAndLists feature flag) Counters and Lists provides the configuration for generic tracking features.
+	// (Beta, CountsAndLists feature flag) Counters provides the configuration for tracking of int64 values against a GameServer.
+	// Keys must be declared at GameServer creation time.
 	// +optional
 	Counters map[string]CounterStatus `json:"counters,omitempty"`
-	Lists    map[string]ListStatus    `json:"lists,omitempty"`
+	// (Beta, CountsAndLists feature flag) Lists provides the configuration for tracking of lists of up to 1000 values against a GameServer.
+	// Keys must be declared at GameServer creation time.
+	// +optional
+	Lists map[string]ListStatus `json:"lists,omitempty"`
 	// Eviction specifies the eviction tolerance of the GameServer. Defaults to "Never".
 	// +optional
 	Eviction *Eviction `json:"eviction,omitempty"`
@@ -250,11 +276,17 @@ type Health struct {
 type GameServerPort struct {
 	// Name is the descriptive name of the port
 	Name string `json:"name,omitempty"`
+	// (Alpha, PortRanges feature flag) Range is the port range name from which to select a port when using a
+	// 'Dynamic' or 'Passthrough' port policy.
+	// +optional
+	Range string `json:"range,omitempty"`
 	// PortPolicy defines the policy for how the HostPort is populated.
 	// Dynamic port will allocate a HostPort within the selected MIN_PORT and MAX_PORT range passed to the controller
 	// at installation time.
 	// When `Static` portPolicy is specified, `HostPort` is required, to specify the port that game clients will
 	// connect to
+	// `Passthrough` dynamically sets the `containerPort` to the same value as the dynamically selected hostPort.
+	// `None` portPolicy ignores `HostPort` and the `containerPort` (optional) is used to set the port on the GameServer instance.
 	PortPolicy PortPolicy `json:"portPolicy,omitempty"`
 	// Container is the name of the container on which to open the port. Defaults to the game server container.
 	// +optional
@@ -292,7 +324,7 @@ type GameServerStatus struct {
 	// [FeatureFlag:PlayerTracking]
 	// +optional
 	Players *PlayerStatus `json:"players"`
-	// (Alpha, CountsAndLists feature flag) Counters and Lists provides the configuration for generic tracking features.
+	// (Beta, CountsAndLists feature flag) Counters and Lists provides the configuration for generic tracking features.
 	// +optional
 	Counters map[string]CounterStatus `json:"counters,omitempty"`
 	// +optional
@@ -317,13 +349,13 @@ type PlayerStatus struct {
 	IDs      []string `json:"ids"`
 }
 
-// CounterStatus stores the current counter values
+// CounterStatus stores the current counter values and maximum capacity
 type CounterStatus struct {
 	Count    int64 `json:"count"`
 	Capacity int64 `json:"capacity"`
 }
 
-// ListStatus stores the current list values
+// ListStatus stores the current list values and maximum capacity
 type ListStatus struct {
 	Capacity int64    `json:"capacity"`
 	Values   []string `json:"values"`
@@ -337,7 +369,7 @@ func (gs *GameServer) ApplyDefaults() {
 		gs.ObjectMeta.Annotations = map[string]string{}
 	}
 	gs.ObjectMeta.Annotations[VersionAnnotation] = pkg.Version
-	gs.ObjectMeta.Finalizers = append(gs.ObjectMeta.Finalizers, agones.GroupName)
+	gs.ObjectMeta.Finalizers = append(gs.ObjectMeta.Finalizers, FinalizerName)
 
 	gs.Spec.ApplyDefaults()
 	gs.applyStatusDefaults()
@@ -421,6 +453,10 @@ func (gss *GameServerSpec) applyPortDefaults() {
 			gss.Ports[i].PortPolicy = Dynamic
 		}
 
+		if p.Range == "" {
+			gss.Ports[i].Range = DefaultPortRange
+		}
+
 		if p.Protocol == "" {
 			gss.Ports[i].Protocol = "UDP"
 		}
@@ -491,6 +527,14 @@ func (gss *GameServerSpec) validateFeatureGates(fldPath *field.Path) field.Error
 		}
 		if gss.Lists != nil {
 			allErrs = append(allErrs, field.Forbidden(fldPath.Child("lists"), fmt.Sprintf("Value cannot be set unless feature flag %s is enabled", runtime.FeatureCountsAndLists)))
+		}
+	}
+
+	if !runtime.FeatureEnabled(runtime.FeaturePortPolicyNone) {
+		for i, p := range gss.Ports {
+			if p.PortPolicy == None {
+				allErrs = append(allErrs, field.Forbidden(fldPath.Child("ports").Index(i).Child("portPolicy"), fmt.Sprintf("Value cannot be set to %s unless feature flag %s is enabled", None, runtime.FeaturePortPolicyNone)))
+			}
 		}
 	}
 
@@ -681,13 +725,6 @@ func (gss *GameServerSpec) FindContainer(name string) (int, corev1.Container, er
 	return -1, corev1.Container{}, errors.Errorf("Could not find a container named %s", name)
 }
 
-// FindGameServerContainer returns the container that is specified in
-// gameServer.Spec.Container. Returns the index and the value.
-// Returns an error if not found
-func (gs *GameServer) FindGameServerContainer() (int, corev1.Container, error) {
-	return gs.Spec.FindContainer(gs.Spec.Container)
-}
-
 // ApplyToPodContainer applies func(v1.Container) to the specified container in the pod.
 // Returns an error if the container is not found.
 func (gs *GameServer) ApplyToPodContainer(pod *corev1.Pod, containerName string, f func(corev1.Container) corev1.Container) error {
@@ -714,13 +751,23 @@ func (gs *GameServer) Pod(apiHooks APIHooks, sidecars ...corev1.Container) (*cor
 	}
 
 	gs.podObjectMeta(pod)
+
+	passthroughContainerPortMap := make(map[string][]int)
 	for _, p := range gs.Spec.Ports {
+		var hostPort int32
+		portIdx := 0
+
+		if !runtime.FeatureEnabled(runtime.FeaturePortPolicyNone) || p.PortPolicy != None {
+			hostPort = p.HostPort
+		}
+
 		cp := corev1.ContainerPort{
 			ContainerPort: p.ContainerPort,
-			HostPort:      p.HostPort,
+			HostPort:      hostPort,
 			Protocol:      p.Protocol,
 		}
 		err := gs.ApplyToPodContainer(pod, *p.Container, func(c corev1.Container) corev1.Container {
+			portIdx = len(c.Ports)
 			c.Ports = append(c.Ports, cp)
 
 			return c
@@ -728,7 +775,19 @@ func (gs *GameServer) Pod(apiHooks APIHooks, sidecars ...corev1.Container) (*cor
 		if err != nil {
 			return nil, err
 		}
+		if runtime.FeatureEnabled(runtime.FeatureAutopilotPassthroughPort) && p.PortPolicy == Passthrough {
+			passthroughContainerPortMap[*p.Container] = append(passthroughContainerPortMap[*p.Container], portIdx)
+		}
 	}
+
+	if len(passthroughContainerPortMap) != 0 {
+		containerToPassthroughMapJSON, err := json.Marshal(passthroughContainerPortMap)
+		if err != nil {
+			return nil, err
+		}
+		pod.ObjectMeta.Annotations[PassthroughPortAssignmentAnnotation] = string(containerToPassthroughMapJSON)
+	}
+
 	// Put the sidecars at the start of the list of containers so that the kubelet starts them first.
 	containers := make([]corev1.Container, 0, len(sidecars)+len(pod.Spec.Containers))
 	containers = append(containers, sidecars...)
@@ -826,8 +885,12 @@ func (gs *GameServer) HasPortPolicy(policy PortPolicy) bool {
 	return false
 }
 
-// Status returns a GameServerSatusPort for this GameServerPort
+// Status returns a GameServerStatusPort for this GameServerPort
 func (p GameServerPort) Status() GameServerStatusPort {
+	if runtime.FeatureEnabled(runtime.FeaturePortPolicyNone) && p.PortPolicy == None {
+		return GameServerStatusPort{Name: p.Name, Port: p.ContainerPort}
+	}
+
 	return GameServerStatusPort{Name: p.Name, Port: p.HostPort}
 }
 
@@ -843,8 +906,21 @@ func (gs *GameServer) CountPorts(f func(policy PortPolicy) bool) int {
 	return count
 }
 
-// Patch creates a JSONPatch to move the current GameServer
-// to the passed in delta GameServer
+// CountPortsForRange returns the number of ports that match condition function and range name.
+func (gs *GameServer) CountPortsForRange(name string, f func(policy PortPolicy) bool) int {
+	count := 0
+	for _, p := range gs.Spec.Ports {
+		if p.Range == name && f(p.PortPolicy) {
+			count++
+		}
+	}
+	return count
+}
+
+// Patch creates a JSONPatch to move the current GameServer to the passed in delta GameServer.
+// Returned Patch includes a "test" operation that will cause the GameServers.Patch() operation to
+// fail if the Game Server has been updated (ResourceVersion has changed) in between when the Patch
+// was created and applied.
 func (gs *GameServer) Patch(delta *GameServer) ([]byte, error) {
 	var result []byte
 
@@ -863,7 +939,13 @@ func (gs *GameServer) Patch(delta *GameServer) ([]byte, error) {
 		return result, errors.Wrapf(err, "error creating patch for GameServer %s", gs.ObjectMeta.Name)
 	}
 
-	result, err = json.Marshal(patch)
+	// Per https://jsonpatch.com/ "Tests that the specified value is set in the document. If the test
+	// fails, then the patch as a whole should not apply."
+	// Used here to check the object has not been updated (has not changed ResourceVersion).
+	patches := []jsonpatch.JsonPatchOperation{{Operation: "test", Path: "/metadata/resourceVersion", Value: gs.ObjectMeta.ResourceVersion}}
+	patches = append(patches, patch...)
+
+	result, err = json.Marshal(patches)
 	return result, errors.Wrapf(err, "error creating json for patch for GameServer %s", gs.ObjectMeta.Name)
 }
 
@@ -879,16 +961,16 @@ func (gs *GameServer) UpdateCount(name string, action string, amount int64) erro
 		cnt := counter.Count
 		if action == GameServerPriorityIncrement {
 			cnt += amount
-			// only check for Count > Capacity when incrementing
-			if cnt > counter.Capacity {
-				return errors.Errorf("unable to UpdateCount with Name %s, Action %s, Amount %d. Incremented Count %d is greater than available capacity %d", name, action, amount, cnt, counter.Capacity)
-			}
 		} else {
 			cnt -= amount
-			// only check for Count < 0 when decrementing
-			if cnt < 0 {
-				return errors.Errorf("unable to UpdateCount with Name %s, Action %s, Amount %d. Decremented Count %d is less than 0", name, action, amount, cnt)
-			}
+		}
+		// Truncate to Capacity if Count > Capacity
+		if cnt > counter.Capacity {
+			cnt = counter.Capacity
+		}
+		// Truncate to Zero if Count is negative
+		if cnt < 0 {
+			cnt = 0
 		}
 		counter.Count = cnt
 		gs.Status.Counters[name] = counter
@@ -904,6 +986,10 @@ func (gs *GameServer) UpdateCounterCapacity(name string, capacity int64) error {
 	}
 	if counter, ok := gs.Status.Counters[name]; ok {
 		counter.Capacity = capacity
+		// If Capacity is now less than Count, reset Count here to equal Capacity
+		if counter.Count > counter.Capacity {
+			counter.Count = counter.Capacity
+		}
 		gs.Status.Counters[name] = counter
 		return nil
 	}
@@ -912,11 +998,12 @@ func (gs *GameServer) UpdateCounterCapacity(name string, capacity int64) error {
 
 // UpdateListCapacity updates the ListStatus Capacity to the given capacity.
 func (gs *GameServer) UpdateListCapacity(name string, capacity int64) error {
-	if capacity < 0 || capacity > 1000 {
+	if capacity < 0 || capacity > apiserver.ListMaxCapacity {
 		return errors.Errorf("unable to UpdateListCapacity: Name %s, Capacity %d. Capacity must be between 0 and 1000, inclusive", name, capacity)
 	}
 	if list, ok := gs.Status.Lists[name]; ok {
 		list.Capacity = capacity
+		list.Values = truncateList(list.Capacity, list.Values)
 		gs.Status.Lists[name] = list
 		return nil
 	}
@@ -925,30 +1012,33 @@ func (gs *GameServer) UpdateListCapacity(name string, capacity int64) error {
 
 // AppendListValues adds unique values to the ListStatus Values list.
 func (gs *GameServer) AppendListValues(name string, values []string) error {
-	if len(values) == 0 {
-		return errors.Errorf("unable to AppendListValues: Name %s, Values %s. No values to append", name, values)
+	if values == nil {
+		return errors.Errorf("unable to AppendListValues: Name %s, Values %s. Values must not be nil", name, values)
 	}
 	if list, ok := gs.Status.Lists[name]; ok {
-		mergedList := mergeRemoveDuplicates(list.Values, values)
-		if len(mergedList) > int(list.Capacity) {
-			return errors.Errorf("unable to AppendListValues: Name %s, Values %s. Appended list length %d exceeds list capacity %d", name, values, len(mergedList), list.Capacity)
-		}
-		// If all given values are duplicates we give an error warning.
-		if len(mergedList) == len(list.Values) {
-			return errors.Errorf("unable to AppendListValues: Name %s, Values %s. All appended values are duplicates of the existing list", name, values)
-		}
-		// If only some values are duplicates, those duplicate values are silently dropped.
+		mergedList := MergeRemoveDuplicates(list.Values, values)
+		// Any duplicate values are silently dropped.
 		list.Values = mergedList
+		list.Values = truncateList(list.Capacity, list.Values)
 		gs.Status.Lists[name] = list
 		return nil
 	}
 	return errors.Errorf("unable to AppendListValues: Name %s, Values %s. List not found in GameServer %s", name, values, gs.ObjectMeta.GetName())
 }
 
-// mergeRemoveDuplicates merges two lists and removes any duplicate values.
+// truncateList truncates the list to the given capacity
+func truncateList(capacity int64, list []string) []string {
+	if list == nil || len(list) <= int(capacity) {
+		return list
+	}
+	list = append([]string{}, list[:capacity]...)
+	return list
+}
+
+// MergeRemoveDuplicates merges two lists and removes any duplicate values.
 // Maintains ordering, so new values from list2 are appended to the end of list1.
 // Returns a new list with unique values only.
-func mergeRemoveDuplicates(list1 []string, list2 []string) []string {
+func MergeRemoveDuplicates(list1 []string, list2 []string) []string {
 	uniqueList := []string{}
 	listMap := make(map[string]bool)
 	for _, v1 := range list1 {
@@ -964,4 +1054,88 @@ func mergeRemoveDuplicates(list1 []string, list2 []string) []string {
 		}
 	}
 	return uniqueList
+}
+
+// CompareCountAndListPriorities compares two game servers based on a list of CountsAndLists Priorities using available
+// capacity as the comparison.
+func (gs *GameServer) CompareCountAndListPriorities(priorities []Priority, other *GameServer) *bool {
+	for _, priority := range priorities {
+		res := gs.compareCountAndListPriority(&priority, other)
+		if res != nil {
+			// reverse if descending
+			if priority.Order == GameServerPriorityDescending {
+				flip := !*res
+				return &flip
+			}
+
+			return res
+		}
+	}
+
+	return nil
+}
+
+// compareCountAndListPriority compares two game servers based on a CountsAndLists Priority using available
+// capacity (Capacity - Count for Counters, and Capacity - len(Values) for Lists) as the comparison.
+// Returns true if gs1 < gs2; false if gs1 > gs2; nil if gs1 == gs2; nil if neither gamer server has the Priority.
+// If only one game server has the Priority, prefer that server. I.e. nil < gsX when Priority
+// Order is Descending (3, 2, 1, 0, nil), and nil > gsX when Order is Ascending (0, 1, 2, 3, nil).
+func (gs *GameServer) compareCountAndListPriority(p *Priority, other *GameServer) *bool {
+	var gs1ok, gs2ok bool
+	t := true
+	f := false
+	switch p.Type {
+	case GameServerPriorityCounter:
+		// Check if both game servers contain the Counter.
+		counter1, ok1 := gs.Status.Counters[p.Key]
+		counter2, ok2 := other.Status.Counters[p.Key]
+		// If both game servers have the Counter
+		if ok1 && ok2 {
+			availCapacity1 := counter1.Capacity - counter1.Count
+			availCapacity2 := counter2.Capacity - counter2.Count
+			if availCapacity1 < availCapacity2 {
+				return &t
+			}
+			if availCapacity1 > availCapacity2 {
+				return &f
+			}
+			if availCapacity1 == availCapacity2 {
+				return nil
+			}
+		}
+		gs1ok = ok1
+		gs2ok = ok2
+	case GameServerPriorityList:
+		// Check if both game servers contain the List.
+		list1, ok1 := gs.Status.Lists[p.Key]
+		list2, ok2 := other.Status.Lists[p.Key]
+		// If both game servers have the List
+		if ok1 && ok2 {
+			availCapacity1 := list1.Capacity - int64(len(list1.Values))
+			availCapacity2 := list2.Capacity - int64(len(list2.Values))
+			if availCapacity1 < availCapacity2 {
+				return &t
+			}
+			if availCapacity1 > availCapacity2 {
+				return &f
+			}
+			if availCapacity1 == availCapacity2 {
+				return nil
+			}
+		}
+		gs1ok = ok1
+		gs2ok = ok2
+	}
+	// If only one game server has the Priority, prefer that server. I.e. nil < gsX when Order is
+	// Descending (3, 2, 1, 0, nil), and nil > gsX when Order is Ascending (0, 1, 2, 3, nil).
+	if (gs1ok && p.Order == GameServerPriorityDescending) ||
+		(gs2ok && p.Order == GameServerPriorityAscending) {
+		return &f
+	}
+	if (gs1ok && p.Order == GameServerPriorityAscending) ||
+		(gs2ok && p.Order == GameServerPriorityDescending) {
+		return &t
+	}
+	// If neither game server has the Priority
+	return nil
 }
