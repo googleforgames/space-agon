@@ -17,6 +17,7 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -25,6 +26,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/encoding/protojson"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	restclient "k8s.io/client-go/rest"
+	clientcmd "k8s.io/client-go/tools/clientcmd"
 )
 
 const sourceKey = "source"
@@ -45,7 +48,7 @@ func init() {
 		},
 	})
 
-	runtime.ErrorHandlers[0] = func(err error) {
+	runtime.ErrorHandlers[0] = func(_ context.Context, err error, _ string, _ ...interface{}) {
 		if stackTrace, ok := err.(stackTracer); ok {
 			var stack []string
 			for _, f := range stackTrace.StackTrace() {
@@ -109,4 +112,25 @@ func NewServerMux() *gwruntime.ServeMux {
 		}),
 	)
 	return mux
+}
+
+// InClusterBuildConfig is a helper function that first attempts to build configurations
+// using InClusterConfig(). If InClusterConfig is unsuccessful, it then tries to build
+// configurations from a kubeconfigPath. This path is typically passed in as a command line
+// flag for cluster components. If neither the InClusterConfig nor the kubeconfigPath
+// are successful, the function logs a warning and falls back to a default configuration.
+func InClusterBuildConfig(logger *logrus.Entry, kubeconfigPath string) (*restclient.Config, error) {
+	kubeconfig, err := restclient.InClusterConfig()
+	if err == nil {
+		return kubeconfig, nil
+	}
+	logger.WithError(err).Warning("Error creating inClusterConfig, trying to build config from flags", err)
+
+	if kubeconfigPath == "" {
+		logrus.Warning("No kubeconfigPath provided. Attempting to use a default configuration.")
+	}
+
+	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
+		&clientcmd.ConfigOverrides{}).ClientConfig()
 }

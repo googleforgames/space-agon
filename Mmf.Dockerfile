@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.22.5 as builder
-ENV GO111MODULE=on
+FROM golang:1.22.10 AS builder
 
 WORKDIR /go/src/github.com/googleforgames/space-agon
 

@@ -40,6 +40,7 @@ type SDK struct {
 	ctx    context.Context
 	health sdk.SDK_HealthClient
 	alpha  *Alpha
+	beta   *Beta
 }
 
 // ErrorLog is a function to log the error.
@@ -50,22 +51,28 @@ var Logger ErrorLog = func(msg string, err error) {
 	fmt.Fprintf(os.Stderr, "%s: %s\n", msg, err)
 }
 
-// NewSDK starts a new SDK instance, and connects to localhost
-// on port "AGONES_SDK_GRPC_PORT" which by default is 9357.
+// NewSDK starts a new SDK instance, defaulting to a connection at "localhost:9357"
+// unless overridden by "AGONES_SDK_GRPC_HOST" and "AGONES_SDK_GRPC_PORT" environment variables.
 // Blocks until connection and handshake are made.
 // Times out after 30 seconds.
 func NewSDK() (*SDK, error) {
-	p := os.Getenv("AGONES_SDK_GRPC_PORT")
-	if p == "" {
-		p = "9357"
+	host := os.Getenv("AGONES_SDK_GRPC_HOST")
+	if host == "" {
+		host = "localhost"
 	}
-	addr := fmt.Sprintf("localhost:%s", p)
+
+	port := os.Getenv("AGONES_SDK_GRPC_PORT")
+	if port == "" {
+		port = "9357"
+	}
+	addr := fmt.Sprintf("%s:%s", host, port)
 	s := &SDK{
 		ctx: context.Background(),
 	}
 	// Block for at least 30 seconds.
 	ctx, cancel := context.WithTimeout(s.ctx, 30*time.Second)
 	defer cancel()
+	// nolint: staticcheck
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return s, errors.Wrapf(err, "could not connect to %s", addr)
@@ -73,12 +80,18 @@ func NewSDK() (*SDK, error) {
 	s.client = sdk.NewSDKClient(conn)
 	s.health, err = s.client.Health(s.ctx)
 	s.alpha = newAlpha(conn)
+	s.beta = newBeta(conn)
 	return s, errors.Wrap(err, "could not set up health check")
 }
 
 // Alpha returns the Alpha SDK.
 func (s *SDK) Alpha() *Alpha {
 	return s.alpha
+}
+
+// Beta returns the Beta SDK.
+func (s *SDK) Beta() *Beta {
+	return s.beta
 }
 
 // Ready marks the Game Server as ready to receive connections.

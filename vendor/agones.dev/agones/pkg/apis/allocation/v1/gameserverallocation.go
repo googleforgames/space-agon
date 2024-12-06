@@ -21,13 +21,13 @@ import (
 	"agones.dev/agones/pkg/apis"
 	agonesv1 "agones.dev/agones/pkg/apis/agones/v1"
 	"agones.dev/agones/pkg/util/runtime"
-	hashstructure "github.com/mitchellh/hashstructure/v2"
+	"github.com/mitchellh/hashstructure/v2"
 	corev1 "k8s.io/api/core/v1"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/labels"
-	field "k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 const (
@@ -85,10 +85,17 @@ type GameServerAllocationSpec struct {
 	// This is useful for things like smoke testing of new game servers.
 	Preferred []GameServerSelector `json:"preferred,omitempty" hash:"ignore"`
 
-	// (Alpha, CountsAndLists feature flag) The first Priority on the array of Priorities is the most
-	// important for sorting. The allocator will use the first priority for sorting GameServers by
-	// available Capacity in the Selector set. Acts as a tie-breaker after sorting the game servers
-	// by State and Strategy Packed. Impacts which GameServer is checked first.
+	// [Stage: Beta]
+	// [FeatureFlag:CountsAndLists]
+	// `Priorities` configuration alters the order in which `GameServers` are searched for matches to the configured `selectors`.
+	//
+	// Priority of sorting is in descending importance. I.e. The position 0 `priority` entry is checked first.
+	//
+	// For `Packed` strategy sorting, this priority list will be the tie-breaker within the least utilised infrastructure, to ensure optimal
+	// infrastructure usage while also allowing some custom prioritisation of `GameServers`.
+	//
+	// For `Distributed` strategy sorting, the entire selection of `GameServers` will be sorted by this priority list to provide the
+	// order that `GameServers` will be allocated by.
 	// +optional
 	Priorities []agonesv1.Priority `json:"priorities,omitempty"`
 
@@ -105,11 +112,16 @@ type GameServerAllocationSpec struct {
 	// You can use this to tell the server necessary session data
 	MetaPatch MetaPatch `json:"metadata,omitempty" hash:"ignore"`
 
-	// (Alpha, CountsAndLists feature flag) Counters and Lists provide a set of actions to perform
-	// on Counters and Lists during allocation.
+	// [Stage: Beta]
+	// [FeatureFlag:CountsAndLists]
+	// Counter actions to perform during allocation.
 	// +optional
 	Counters map[string]CounterAction `json:"counters,omitempty" hash:"ignore"`
-	Lists    map[string]ListAction    `json:"lists,omitempty" hash:"ignore"`
+	// [Stage: Beta]
+	// [FeatureFlag:CountsAndLists]
+	// List actions to perform during allocation.
+	// +optional
+	Lists map[string]ListAction `json:"lists,omitempty" hash:"ignore"`
 }
 
 // GameServerSelector contains all the filter options for selecting
@@ -127,12 +139,16 @@ type GameServerSelector struct {
 	// Players provides a filter on minimum and maximum values for player capacity when retrieving a GameServer
 	// through Allocation. Defaults to no limits.
 	Players *PlayerSelector `json:"players,omitempty"`
-	// (Alpha, CountsAndLists feature flag) Counters provides filters on minimum and maximum values
+	// [Stage: Beta]
+	// [FeatureFlag:CountsAndLists]
+	// Counters provides filters on minimum and maximum values
 	// for a Counter's count and available capacity when retrieving a GameServer through Allocation.
 	// Defaults to no limits.
 	// +optional
 	Counters map[string]CounterSelector `json:"counters,omitempty"`
-	// (Alpha, CountsAndLists feature flag) Lists provides filters on minimum and maximum values
+	// [Stage: Beta]
+	// [FeatureFlag:CountsAndLists]
+	// Lists provides filters on minimum and maximum values
 	// for List capacity, and for the existence of a value in a List, when retrieving a GameServer
 	// through Allocation. Defaults to no limits.
 	// +optional
@@ -146,40 +162,56 @@ type PlayerSelector struct {
 }
 
 // CounterSelector is the filter options for a GameServer based on the count and/or available capacity.
-// 0 for MaxCount or MaxAvailable means unlimited maximum. Default for all fields: 0
 type CounterSelector struct {
-	MinCount     int64 `json:"minCount"`
-	MaxCount     int64 `json:"maxCount"`
+	// MinCount is the minimum current value. Defaults to 0.
+	// +optional
+	MinCount int64 `json:"minCount"`
+	// MaxCount is the maximum current value. Defaults to 0, which translates as max(in64).
+	// +optional
+	MaxCount int64 `json:"maxCount"`
+	// MinAvailable specifies the minimum capacity (current capacity - current count) available on a GameServer. Defaults to 0.
+	// +optional
 	MinAvailable int64 `json:"minAvailable"`
+	// MaxAvailable specifies the maximum capacity (current capacity - current count) available on a GameServer. Defaults to 0, which translates to max(int64).
+	// +optional
 	MaxAvailable int64 `json:"maxAvailable"`
 }
 
 // ListSelector is the filter options for a GameServer based on List available capacity and/or the
 // existence of a value in a List.
-// 0 for MaxAvailable means unlimited maximum. Default for integer fields: 0
-// "" for ContainsValue means ignore field. Default for string field: ""
 type ListSelector struct {
+	// ContainsValue says to only match GameServers who has this value in the list. Defaults to "", which is all.
+	// +optional
 	ContainsValue string `json:"containsValue"`
-	MinAvailable  int64  `json:"minAvailable"`
-	MaxAvailable  int64  `json:"maxAvailable"`
+	// MinAvailable specifies the minimum capacity (current capacity - current count) available on a GameServer. Defaults to 0.
+	// +optional
+	MinAvailable int64 `json:"minAvailable"`
+	// MaxAvailable specifies the maximum capacity (current capacity - current count) available on a GameServer. Defaults to 0, which is translated as max(int64).
+	// +optional
+	MaxAvailable int64 `json:"maxAvailable"`
 }
 
 // CounterAction is an optional action that can be performed on a Counter at allocation.
-// Action: "Increment" or "Decrement" the Counter's Count (optional). Must also define the Amount.
-// Amount: The amount to increment or decrement the Count (optional). Must be a positive integer.
-// Capacity: Update the maximum capacity of the Counter to this number (optional). Min 0, Max int64.
 type CounterAction struct {
-	Action   *string `json:"action,omitempty"`
-	Amount   *int64  `json:"amount,omitempty"`
-	Capacity *int64  `json:"capacity,omitempty"`
+	// Action must to either "Increment" or "Decrement" the Counter's Count. Must also define the Amount.
+	// +optional
+	Action *string `json:"action,omitempty"`
+	// Amount is the amount to increment or decrement the Count. Must be a positive integer.
+	// +optional
+	Amount *int64 `json:"amount,omitempty"`
+	// Capacity is the amount to update the maximum capacity of the Counter to this number. Min 0, Max int64.
+	// +optional
+	Capacity *int64 `json:"capacity,omitempty"`
 }
 
 // ListAction is an optional action that can be performed on a List at allocation.
-// AddValues: Append values to a List's Values array (optional). Any duplicate values will be ignored.
-// Capacity: Update the maximum capacity of the Counter to this number (optional). Min 0, Max 1000.
 type ListAction struct {
+	// AddValues appends values to a List's Values array. Any duplicate values will be ignored.
+	// +optional
 	AddValues []string `json:"addValues,omitempty"`
-	Capacity  *int64   `json:"capacity,omitempty"`
+	// Capacity updates the maximum capacity of the Counter to this number. Min 0, Max 1000.
+	// +optional
+	Capacity *int64 `json:"capacity,omitempty"`
 }
 
 // ApplyDefaults applies default values
@@ -311,7 +343,7 @@ func (la *ListAction) ListActions(list string, gs *agonesv1.GameServer) error {
 			errs = errors.Join(errs, capErr)
 		}
 	}
-	if la.AddValues != nil && len(la.AddValues) > 0 {
+	if len(la.AddValues) > 0 {
 		cntErr := gs.AppendListValues(list, la.AddValues)
 		if cntErr != nil {
 			errs = errors.Join(errs, cntErr)
@@ -448,6 +480,60 @@ func validateLists(lists map[string]ListSelector, fldPath *field.Path) field.Err
 	return allErrs
 }
 
+// validatePriorities validates that the Priorities fields has valid values for Priorities
+func validatePriorities(priorities []agonesv1.Priority, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	for index, priority := range priorities {
+		keyPath := fldPath.Index(index)
+		if priority.Type != agonesv1.GameServerPriorityCounter && priority.Type != agonesv1.GameServerPriorityList {
+			allErrs = append(allErrs, field.Invalid(keyPath, priority.Type, "type must be \"Counter\" or \"List\""))
+		}
+		if priority.Key == "" {
+			allErrs = append(allErrs, field.Invalid(keyPath, priority.Type, "key must not be nil"))
+		}
+		if priority.Order != agonesv1.GameServerPriorityAscending && priority.Order != agonesv1.GameServerPriorityDescending {
+			allErrs = append(allErrs, field.Invalid(keyPath, priority.Order, "order must be \"Ascending\" or \"Descending\""))
+		}
+	}
+
+	return allErrs
+}
+
+// validateCounterActions validates that the Counters field has valid values for CounterActions
+func validateCounterActions(counters map[string]CounterAction, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	for key, counterAction := range counters {
+		keyPath := fldPath.Key(key)
+		if counterAction.Amount != nil && *counterAction.Amount < 0 {
+			allErrs = append(allErrs, field.Invalid(keyPath.Child("amount"), counterAction.Amount, apivalidation.IsNegativeErrorMsg))
+		}
+		if counterAction.Capacity != nil && *counterAction.Capacity < 0 {
+			allErrs = append(allErrs, field.Invalid(keyPath.Child("capacity"), counterAction.Capacity, apivalidation.IsNegativeErrorMsg))
+		}
+		if counterAction.Amount != nil && counterAction.Action == nil {
+			allErrs = append(allErrs, field.Invalid(keyPath, counterAction.Action, "action must be \"Increment\" or \"Decrement\" if the amount is not nil"))
+		}
+		if counterAction.Amount == nil && counterAction.Action != nil {
+			allErrs = append(allErrs, field.Invalid(keyPath, counterAction.Amount, "amount must not be nil if action is not nil"))
+		}
+	}
+
+	return allErrs
+}
+
+// validateListActions validates that the Lists field has valid values for ListActions
+func validateListActions(lists map[string]ListAction, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	for key, listAction := range lists {
+		keyPath := fldPath.Key(key)
+		if listAction.Capacity != nil && *listAction.Capacity < 0 {
+			allErrs = append(allErrs, field.Invalid(keyPath.Child("capacity"), listAction.Capacity, apivalidation.IsNegativeErrorMsg))
+		}
+	}
+
+	return allErrs
+}
+
 // MultiClusterSetting specifies settings for multi-cluster allocation.
 type MultiClusterSetting struct {
 	Enabled        bool                 `json:"enabled,omitempty"`
@@ -479,8 +565,10 @@ type GameServerAllocationStatus struct {
 	NodeName       string                          `json:"nodeName,omitempty"`
 	// If the allocation is from a remote cluster, Source is the endpoint of the remote agones-allocator.
 	// Otherwise, Source is "local"
-	Source   string              `json:"source"`
-	Metadata *GameServerMetadata `json:"metadata,omitempty"`
+	Source   string                            `json:"source"`
+	Metadata *GameServerMetadata               `json:"metadata,omitempty"`
+	Counters map[string]agonesv1.CounterStatus `json:"counters,omitempty"`
+	Lists    map[string]agonesv1.ListStatus    `json:"lists,omitempty"`
 }
 
 // GameServerMetadata is the metadata from the allocated game server at allocation time
@@ -493,6 +581,12 @@ type GameServerMetadata struct {
 func (gsa *GameServerAllocation) ApplyDefaults() {
 	if gsa.Spec.Scheduling == "" {
 		gsa.Spec.Scheduling = apis.Packed
+	}
+
+	for i := range gsa.Spec.Priorities {
+		if len(gsa.Spec.Priorities[i].Order) == 0 {
+			gsa.Spec.Priorities[i].Order = agonesv1.GameServerPriorityAscending
+		}
 	}
 
 	if len(gsa.Spec.Selectors) == 0 {
@@ -525,8 +619,28 @@ func (gsa *GameServerAllocation) Validate() field.ErrorList {
 		allErrs = append(allErrs, gsa.Spec.Selectors[i].Validate(specPath.Child("selectors").Index(i))...)
 	}
 
-	if !runtime.FeatureEnabled(runtime.FeatureCountsAndLists) && (gsa.Spec.Priorities != nil) {
-		allErrs = append(allErrs, field.Forbidden(specPath.Child("priorities"), "Feature CountsAndLists must be enabled if Priorities is specified"))
+	if !runtime.FeatureEnabled(runtime.FeatureCountsAndLists) {
+		if gsa.Spec.Priorities != nil {
+			allErrs = append(allErrs, field.Forbidden(specPath.Child("priorities"), "Feature CountsAndLists must be enabled if Priorities is specified"))
+		}
+		if gsa.Spec.Counters != nil {
+			allErrs = append(allErrs, field.Forbidden(specPath.Child("counters"), "Feature CountsAndLists must be enabled if Counters is specified"))
+		}
+		if gsa.Spec.Lists != nil {
+			allErrs = append(allErrs, field.Forbidden(specPath.Child("lists"), "Feature CountsAndLists must be enabled if Lists is specified"))
+		}
+	}
+
+	if runtime.FeatureEnabled(runtime.FeatureCountsAndLists) {
+		if gsa.Spec.Priorities != nil {
+			allErrs = append(allErrs, validatePriorities(gsa.Spec.Priorities, specPath.Child("priorities"))...)
+		}
+		if gsa.Spec.Counters != nil {
+			allErrs = append(allErrs, validateCounterActions(gsa.Spec.Counters, specPath.Child("counters"))...)
+		}
+		if gsa.Spec.Lists != nil {
+			allErrs = append(allErrs, validateListActions(gsa.Spec.Lists, specPath.Child("lists"))...)
+		}
 	}
 
 	allErrs = append(allErrs, gsa.Spec.MetaPatch.Validate(specPath.Child("metadata"))...)

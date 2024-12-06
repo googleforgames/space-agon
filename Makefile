@@ -23,7 +23,7 @@ PROJECT=$(shell gcloud config list --format 'value(core.project)')
 LOCATION=us-central1
 REPOSITORY=space-agon
 REGISTRY=${LOCATION}-docker.pkg.dev/${PROJECT}/${REPOSITORY}
-TAG=0.000002
+TAG=0.000004
 
 FRONTEND_IMG=space-agon-frontend
 DIRECTOR_IMG=space-agon-director
@@ -32,9 +32,9 @@ MMF_IMG=space-agon-mmf
 
 AGONES_NS:=agones-system
 OM_NS:=open-match
-AGONES_VER:=1.36.0
+AGONES_VER:=1.45.0
 OM_VER:=1.8.1
-K8S_VERSION:=1.27
+K8S_VERSION:=1.31
 
 #   _____                    _
 #  |_   _|_ _ _ __ __ _  ___| |_ ___
