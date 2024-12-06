@@ -39,13 +39,17 @@ apiVersion: v1
 kind: Service
 metadata:
   name:  {{ template "mmf.name" .}}
+  # annotations:
+  #   networking.gke.io/load-balancer-type: "Internal"
   namespace: {{ .Release.Namespace }}
   labels:
     run:  {{ template "mmf.name" .}}
 spec:
   type: {{ .Values.mmf.serviceType }}
+  # loadBalancerIP: {{ .Values.mmf.ipAddress }}
   ports:
     - port: {{ .Values.mmf.servicePort }}
+      targetPort: {{ .Values.mmf.containerPort }}
       protocol: TCP
   selector:
     run:  {{ template "mmf.name" .}}

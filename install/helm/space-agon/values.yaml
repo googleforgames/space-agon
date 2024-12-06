@@ -21,7 +21,8 @@ frontend:
   image: 
     repository: local/space-agon-frontend
     tag: TAG
-    imagePullPolicy: IfNotPresent
+    imagePullPolicy: Always
+  omCoreAddress: "http://open-match-service.default.svc.cluster.local:50504"
 
 mmf:
   name: mmf
@@ -32,7 +33,7 @@ mmf:
   image: 
     repository: local/space-agon-mmf
     tag: TAG
-  imagePullPolicy: IfNotPresent
+  imagePullPolicy: Always
 
 director:
   name: director
@@ -41,7 +42,10 @@ director:
   image: 
     repository: local/space-agon-director
     tag: TAG
-  imagePullPolicy: IfNotPresent
+  imagePullPolicy: Always
+  omCoreAddress: "http://open-match-service.default.svc.cluster.local:50504"
+  mmfAddress: "http://mmf.default.svc.cluster.local"
+  mmfPort: 50502
 
 dedicated:
   name: dedicated
@@ -51,7 +55,7 @@ dedicated:
   image: 
     repository: local/space-agon-dedicated
     tag: TAG
-  imagePullPolicy: IfNotPresent
+  imagePullPolicy: Always
   portPolicy: Dynamic
   resources:
     limits:

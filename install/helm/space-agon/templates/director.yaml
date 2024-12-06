@@ -32,12 +32,21 @@ spec:
         - name:  {{ template "director.name" .}}
           image: "{{ .Values.director.image.repository }}:{{ .Values.director.image.tag }}"
           imagePullPolicy: {{ .Values.director.imagePullPolicy }}
+          env:
+          - name: OM_CORE_ADDRESS
+            value: {{ .Values.director.omCoreAddress }}
+          - name: MMF_ADDRESS
+            value: {{ .Values.director.mmfAddress }}
+          - name: MMF_PORT
+            value: {{ .Values.director.mmfPort | quote }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: {{ .Values.director.serviceAccountName }}
   namespace: {{ .Release.Namespace }}
+  # annotations:
+  #   iam.gke.io/gcp-service-account: {{ .Values.director.googleServiceAccount }}
   labels:
     app: {{ .Values.director.serviceAccountName }}
 ---

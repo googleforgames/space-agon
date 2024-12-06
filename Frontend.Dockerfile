@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.21.5 as builder
+FROM golang:1.22.5 as builder
 ENV GO111MODULE=on
 
 WORKDIR /go/src/github.com/googleforgames/space-agon
@@ -24,6 +24,8 @@ RUN mkdir /app
 COPY frontend ./frontend
 COPY game ./game
 COPY client ./client
+COPY omclient ./omclient
+COPY logging ./logging
 COPY static /app/static
 RUN CGO_ENABLED=0 go build -installsuffix cgo -o /app/frontend github.com/googleforgames/space-agon/frontend
 RUN GOOS=js GOARCH=wasm go build -o /app/static/client.wasm github.com/googleforgames/space-agon/client

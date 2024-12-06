@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.21.5 as builder
+FROM golang:1.22.5 as builder
 ENV GO111MODULE=on
 
 WORKDIR /go/src/github.com/googleforgames/space-agon
@@ -22,6 +22,8 @@ RUN go mod download
 
 RUN mkdir /app
 COPY director ./director
+COPY omclient ./omclient
+COPY logging ./logging
 RUN CGO_ENABLED=0 go build -installsuffix cgo -o /app/director github.com/googleforgames/space-agon/director
 
 FROM gcr.io/distroless/static:nonroot
