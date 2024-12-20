@@ -23,7 +23,7 @@ PROJECT=$(shell gcloud config list --format 'value(core.project)')
 LOCATION=us-central1
 REPOSITORY=space-agon
 REGISTRY=${LOCATION}-docker.pkg.dev/${PROJECT}/${REPOSITORY}
-TAG=0.000004
+TAG=$(shell git rev-parse --short HEAD)
 
 FRONTEND_IMG=space-agon-frontend
 DIRECTOR_IMG=space-agon-director
