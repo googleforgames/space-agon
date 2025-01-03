@@ -28,7 +28,7 @@ spec:
         app: open-match-deployment
     spec:
       containers:
-        - image: OM_CORE_IMAGE
+        - image: us-docker.pkg.dev/open-match-public-images/open-match2/om-core
           name: core 
           ports:
           - containerPort: 8080
