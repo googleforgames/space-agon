@@ -259,6 +259,10 @@ install-local:
 		--set dedicated.autoscaler.buffer.bufferSize=1 \
 		--set dedicated.autoscaler.buffer.minReplicas=0 \
 		--set dedicated.autoscaler.buffer.maxReplicas=1 \
+		--set frontend.imagePullPolicy=Never \
+		--set mmf.imagePullPolicy=Never \
+		--set director.imagePullPolicy=Never \
+		--set dedicated.imagePullPolicy=Never \
 		./install/helm/space-agon 
 
 # uninstall space-agon itself
