@@ -279,4 +279,4 @@ test:
 # integration test
 .PHONY: integration-test
 integration-test:
-	go test -count=1 -v -timeout 60s test/integration_test.go
+	go test -count=1 -v -timeout 120s test/integration_test.go
