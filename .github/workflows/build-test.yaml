@@ -39,9 +39,9 @@ jobs:
     strategy:
         matrix:
           k8s_version:
-            - "v1.26.11"
-            - "v1.27.8"
-            - "v1.28.4"
+            - "v1.30.0"
+            - "v1.31.0"
+            - "v1.32.0"
     runs-on: ubuntu-latest
     steps:
       - name: Pull repo
@@ -70,7 +70,7 @@ jobs:
         run: make build-local
       - name: Install space-agon in minikube
         run: make install-local
-      # - name: Run integration-test
-      #   run: | 
-      #     nohup minikube tunnel &
-      #     make integration-test
+      - name: Run integration-test
+        run: | 
+          nohup minikube tunnel &
+          make integration-test

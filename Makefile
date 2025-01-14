@@ -142,13 +142,11 @@ gcloud-test-cluster:
 .PHONY: helm-repo-add
 helm-repo-add: 
 	helm repo add $(AGONES_NS) https://agones.dev/chart/stable
-	helm repo add $(OM_NS) https://open-match.dev/chart/stable
 	helm repo update
 
 .PHONY: helm-repo-remove
 helm-repo-remove: 
 	helm repo remove $(AGONES_NS)
-	helm repo remove $(OM_NS) 
 
 # install agones in local-cluster
 .PHONY: agones-install-local
@@ -177,48 +175,20 @@ agones-uninstall:
 # install open-match in local-cluster
 .PHONY: openmatch-install-local
 openmatch-install-local:
-	helm install $(OM_NS) \
-	--create-namespace --namespace $(OM_NS) $(OM_NS)/open-match \
-	--version $(OM_VER) \
-	--set open-match-customize.enabled=true \
-	--set open-match-customize.evaluator.enabled=true \
-	--set open-match-customize.evaluator.replicas=1 \
-	--set open-match-override.enabled=true \
-	--set open-match-core.swaggerui.enabled=false \
-	--set global.kubernetes.horizontalPodAutoScaler.frontend.maxReplicas=1 \
-	--set global.kubernetes.horizontalPodAutoScaler.backend.maxReplicas=1 \
-	--set global.kubernetes.horizontalPodAutoScaler.query.minReplicas=1 \
-	--set global.kubernetes.horizontalPodAutoScaler.query.maxReplicas=1 \
-	--set global.kubernetes.horizontalPodAutoScaler.evaluator.maxReplicas=1 \
-	--set query.replicas=1 \
-	--set frontend.replicas=1 \
-	--set backend.replicas=1 \
-	--set redis.master.resources.requests.cpu=0.1 \
-	--set redis.replica.replicaCount=0 \
-	--set redis.metrics.enabled=false
+	kubectl apply -f redis-config.yaml
+	kubectl apply -f om_install.yaml
 
 # install open-match
 .PHONY: openmatch-install
 openmatch-install:
-	helm install ${OM_NS} --create-namespace --namespace \
-	${OM_NS} $(OM_NS)/open-match \
-	--version ${OM_VER} \
-	--set open-match-customize.enabled=true \
-	--set open-match-customize.evaluator.enabled=true \
-	--set open-match-customize.evaluator.replicas=1 \
-	--set open-match-override.enabled=true \
-	--set open-match-core.swaggerui.enabled=false \
-	--set redis.sentinel.enabled=false \
-	--set redis.master.resources.requests.cpu=0.1 \
-	--set redis.master.persistence.enabled=false \
-	--set redis.replica.replicaCount=0 \
-	--set redis.metrics.enabled=false
+	kubectl apply -f redis-config.yaml
+	kubectl apply -f om_install.yaml
 
 # uninstall open-match
 .PHONY: openmatch-uninstall
 openmatch-uninstall:
-	helm uninstall -n ${OM_NS} ${OM_NS}
-	kubectl delete namespace ${OM_NS}
+	kubectl delete -f redis-config.yaml
+	kubectl delete -f om_install.yaml
 
 .PHONY: skaffold-setup-local
 skaffold-setup-local:
@@ -289,6 +259,10 @@ install-local:
 		--set dedicated.autoscaler.buffer.bufferSize=1 \
 		--set dedicated.autoscaler.buffer.minReplicas=0 \
 		--set dedicated.autoscaler.buffer.maxReplicas=1 \
+		--set frontend.imagePullPolicy=Never \
+		--set mmf.imagePullPolicy=Never \
+		--set director.imagePullPolicy=Never \
+		--set dedicated.imagePullPolicy=Never \
 		./install/helm/space-agon 
 
 # uninstall space-agon itself
@@ -309,4 +283,4 @@ test:
 # integration test
 .PHONY: integration-test
 integration-test:
-	go test -count=1 -v -timeout 60s test/integration_test.go
+	go test -count=1 -v -timeout 120s test/integration_test.go

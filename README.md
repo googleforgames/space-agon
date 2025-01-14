@@ -86,7 +86,7 @@ make openmatch-install
 # Start minikube
 # ref: https://minikube.sigs.k8s.io/docs/commands/start/
 # Or you can other dirvers
-minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.25.15 --driver=hyperkit
+minikube start --cpus="2" --memory="4096" --kubernetes-version=v1.31.0 --driver=hyperkit
 
 # Add Helm Repositories 
 make helm-repo-add
@@ -119,7 +119,7 @@ make install
 make build-local
 
 # Deploy Space Agon for minikube cluster
-make install
+make install-local
 ```
 
 ## View and Play

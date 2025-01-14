@@ -21,7 +21,7 @@ frontend:
   image: 
     repository: local/space-agon-frontend
     tag: TAG
-    imagePullPolicy: Always
+  imagePullPolicy: Always
   omCoreAddress: "http://open-match-service.default.svc.cluster.local:50504"
 
 mmf:

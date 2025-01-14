@@ -40,7 +40,7 @@ spec:
       containers:
         - name: {{ template "frontend.name" .}}
           image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
-          imagePullPolicy: {{ .Values.frontend.image.imagePullPolicy }}
+          imagePullPolicy: {{ .Values.frontend.imagePullPolicy }}
           ports:
             - containerPort: {{ .Values.frontend.containerPort }}
           env:
