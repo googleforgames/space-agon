@@ -14,7 +14,7 @@ module github.com/googleforgames/space-agon
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-go 1.22.10
+go 1.23.0
 
 require (
 	agones.dev/agones v1.45.0
@@ -24,7 +24,7 @@ require (
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/net v0.32.0
-	golang.org/x/oauth2 v0.24.0
+	golang.org/x/oauth2 v0.27.0
 	google.golang.org/api v0.210.0
 	google.golang.org/grpc v1.68.1
 	google.golang.org/protobuf v1.35.2
